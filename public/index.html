@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #121212; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; color: white; width: 100vw; }
+        .container { width: 100vw; height: 100vh; background: #1e1e1e; display: none; flex-direction: column; }
+        .login-container { text-align: center; background: #1e1e1e; padding: 20px; border-radius: 10px; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5); width: 90%; max-width: 350px; }
+        .login-container button { padding: 12px; width: 100%; margin: 10px 0; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        .ewerton-btn { background: #25d366; color: white; }
+        .hellen-btn { background: #ff4081; color: white; } 
+        .header { background: #075e54; color: white; padding: 15px; text-align: center; font-size: 18px; font-weight: bold; }
+        .messages { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; }
+        .message { padding: 10px; border-radius: 8px; margin: 5px; max-width: 70%; word-wrap: break-word; font-size: 14px; position: relative; cursor: pointer; white-space: pre-wrap; }
+        .ewerton { background: #0b8043; align-self: flex-start; color: white; }
+        .hellen { background: #282828; align-self: flex-end; color: white; }
+        .timestamp { font-size: 10px; color: #ccc; position: absolute; bottom: -15px; right: 5px; }
+        .input-area { display: flex; align-items: center; padding: 10px; background: #1e1e1e; border-top: 1px solid #333; }
+        .input-area .message-input { 
+            flex: 1; 
+            padding: 10px; 
+            border: 1px solid #444; 
+            border-radius: 5px; 
+            font-size: 14px; 
+            background: #333; 
+            color: white; 
+            outline: none; 
+            max-height: 100px; 
+            overflow-y: auto; 
+        }
+         .input-area button { background: #25d366; color: white; border: none; padding: 10px 15px; border-radius: 5px; margin-left: 5px; cursor: pointer; font-size: 14px; }
+        .input-area input[type="file"] { display: none; }
+        .input-area label { background: #25d366; color: white; padding: 10px 15px; border-radius: 5px; cursor: pointer; }
+
+        /* Estilos para a caixa de visualização */
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); justify-content: center; align-items: center; z-index: 1000; }
+        .overlay-content { max-width: 90%; max-height: 90%; background: #1e1e1e; padding: 20px; border-radius: 10px; text-align: center; }
+        .overlay-content img, .overlay-content video { max-width: 100%; max-height: 80vh; border-radius: 8px; }
+        .overlay-content button { margin-top: 10px; padding: 10px 20px; background: #25d366; color: white; border: none; border-radius: 5px; cursor: pointer; }
+
+        /* Estilos para a interface da câmera */
+        .camera-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); justify-content: center; align-items: center; z-index: 1000; flex-direction: column; }
+        .camera-overlay video { max-width: 90%; max-height: 70vh; border-radius: 8px; }
+        .camera-controls { display: flex; gap: 10px; margin-top: 10px; }
+        .camera-controls select, .camera-controls button { padding: 10px; background: #25d366; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .camera-controls select { background: #333; }
+
+        /* Estilos para o botão de gravação */
+        .record-btn { background: #ff4081; color: white; padding: 10px 15px; border-radius: 5px; cursor: pointer; margin-left: 5px; }
+        .record-btn.recording { background: #ff0000; }
+    </style>
+</head>
+<body>
+    <!-- Tela de bloqueio -->
+    <div id="lock-screen" style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:9999; overflow:hidden;">
+        <img src="image.png" alt="Tela de Bloqueio" style="width:auto; height:100vh; display:block; margin:0 auto;" />
+        <div style="position:absolute; top:10px; left:50%; transform:translateX(-50%); display:flex; gap:12px; z-index:10000;">
+            <button onclick="unlockAttempt()" style="width:40px; height:40px; background:transparent; border:none;"></button>
+            <button onclick="unlockAttempt()" style="width:40px; height:40px; background:transparent; border:none;"></button>
+            <button onclick="unlockAttempt()" style="width:40px; height:40px; background:transparent; border:none;"></button>
+            <button onclick="unlockAttempt()" style="width:40px; height:40px; background:transparent; border:none;"></button>
+        </div>
+    </div>
+
+    <div class="login-container" id="login-container">
+        <h2>Escolha seu usuário</h2>
+        <button class="ewerton-btn" onclick="login('Ewerton')">👨‍💻 Ewerton</button>
+        <button class="hellen-btn" onclick="login('Hellen')">👩‍🦰 Hellen</button>
+    </div>
+    <div class="container" id="chat-container">
+        <div class="header" id="chat-title"></div>
+        <div class="messages" id="messages"></div>
+        <div id="typing-indicator" style="padding:5px 10px; font-size:12px; color:#ccc;"></div>
+        <div class="input-area">
+            <div id="messageInput" class="message-input" contenteditable="true" placeholder="Digite uma mensagem..." onkeydown="handleKeyDown(event)"></div>
+            <button onclick="sendMessage()">Enviar</button>
+            <input type="file" id="fileInput" accept="image/*,video/*" onchange="sendMedia()">
+            <label for="fileInput">📷</label>
+            <input type="file" id="singleViewInput" accept="image/*,video/*" style="display: none;" onchange="sendSingleViewMedia()">
+            <label for="singleViewInput" style="background: #25d366; color: white; padding: 10px 15px; border-radius: 5px; cursor: pointer;">📷🔂</label>
+            <button onclick="openCamera()" style="background: #25d366; color: white; padding: 10px 15px; border-radius: 5px; cursor: pointer;">📸</button>
+            <button id="recordButton" class="record-btn" onclick="toggleRecording()">🎤</button>
+        </div>
+    </div>
+
+    <!-- Caixa de visualização -->
+    <div class="overlay" id="overlay">
+        <div class="overlay-content" id="overlay-content">
+            <img id="overlay-image" src="" alt="Imagem">
+            <video id="overlay-video" controls style="display: none;"></video>
+            <button onclick="closeOverlay()">Fechar</button>
+        </div>
+    </div>
+
+    <!-- Interface da câmera -->
+    <div class="camera-overlay" id="camera-overlay">
+        <video id="camera-video" autoplay></video>
+        <div class="camera-controls">
+            <select id="camera-select" onchange="changeCamera()">
+                <option value="">Selecione a câmera</option>
+            </select>
+            <button onclick="capturePhoto(false)">Tirar Foto</button>
+            <button onclick="capturePhoto(true)">Foto Única</button>
+            <button onclick="closeCamera()">Fechar</button>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = "";
+        let typingTimeout;
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+        let stream = null;
+
+        function login(user) {
+            currentUser = user;
+            document.getElementById("login-container").style.display = "none";
+            document.getElementById("chat-container").style.display = "flex";
+            document.getElementById("chat-title").innerText = `Chat - ${user}`;
+            loadMessages();
+        }
+
+        document.getElementById("messageInput").addEventListener("input", () => {
+            sendTypingStatus(true);
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => sendTypingStatus(false), 1000);
+        });
+
+        async function sendTypingStatus(isTyping) {
+            await fetch("/typing", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user: currentUser, typing: isTyping })
+            });
+        }
+
+        async function sendMessage() {
+            let text = document.getElementById("messageInput").innerText.trim();
+            if (!text) return;
+            await fetch("/save-message", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user: currentUser, content: text })
+            });
+            document.getElementById("messageInput").innerText = "";
+            loadMessages();
+        }
+
+        async function sendMedia() {
+            let fileInput = document.getElementById("fileInput");
+            let file = fileInput.files[0];
+            if (!file) return;
+            let formData = new FormData();
+            formData.append("media", file);
+            formData.append("user", currentUser);
+            await fetch("/save-media", { method: "POST", body: formData });
+            fileInput.value = "";
+            loadMessages();
+        }
+
+        async function sendSingleViewMedia() {
+            let fileInput = document.getElementById("singleViewInput");
+            let file = fileInput.files[0];
+            if (!file) return;
+            let formData = new FormData();
+            formData.append("media", file);
+            formData.append("user", currentUser);
+            formData.append("singleView", true);
+            await fetch("/save-single-view-media", { method: "POST", body: formData });
+            fileInput.value = "";
+            loadMessages();
+        }
+
+        async function loadMessages() {
+            let response = await fetch("/load-messages");
+            let messages = await response.json();
+            let messagesContainer = document.getElementById("messages");
+            messagesContainer.innerHTML = "";
+            messages.forEach(msg => {
+                let div = document.createElement("div");
+                div.classList.add("message", msg.user.toLowerCase());
+                if (msg.content) {
+                    div.innerHTML = msg.content.replace(/\n/g, "<br>");
+                } else if (msg.media) {
+                    let fileExtension = msg.media.split('.').pop();
+                    if (msg.singleView && !msg.viewed && msg.user !== currentUser) {
+                        div.innerHTML = `<div style="color: red;">Esta foto pode ser visualizada apenas uma vez. <button onclick="openSingleView('${msg.media}')">Abrir</button></div>`;
+                    } else if (msg.viewed && msg.user === currentUser) {
+                        div.innerHTML = `<div style="color: #25d366;">Sua mídia foi visualizada.</div>`;
+                    } else if (!msg.singleView) {
+                        if (["mp4", "webm", "ogg"].includes(fileExtension)) {
+                            div.innerHTML = `<video controls style="max-width: 100%; border-radius: 8px;"><source src="/Uploads/${msg.media}" type="video/${fileExtension}"></video>`;
+                        } else if (["mp3", "wav", "ogg"].includes(fileExtension)) {
+                            div.innerHTML = `<audio controls style="max-width: 100%;"><source src="/Uploads/${msg.media}" type="audio/${fileExtension}"></audio>`;
+                        } else {
+                            div.innerHTML = `<img src="/Uploads/${msg.media}" style="max-width: 100%; border-radius: 8px;">`;
+                        }
+                    }
+                }
+                messagesContainer.appendChild(div);
+            });
+        }
+
+        async function openSingleView(media) {
+            const fileExtension = media.split('.').pop();
+            const overlay = document.getElementById("overlay");
+            const overlayImage = document.getElementById("overlay-image");
+            const overlayVideo = document.getElementById("overlay-video");
+            if (["mp4", "webm", "ogg"].includes(fileExtension)) {
+                overlayImage.style.display = "none";
+                overlayVideo.style.display = "block";
+                overlayVideo.src = `/Uploads/${media}`;
+            } else {
+                overlayVideo.style.display = "none";
+                overlayImage.style.display = "block";
+                overlayImage.src = `/Uploads/${media}`;
+            }
+            overlay.style.display = "flex";
+            await fetch("/mark-as-viewed", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ media: media, viewer: currentUser })
+            });
+            loadMessages();
+        }
+
+        function closeOverlay() {
+            const overlay = document.getElementById("overlay");
+            overlay.style.display = "none";
+        }
+
+        function handleKeyDown(event) {
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        async function toggleRecording() {
+            if (!isRecording) {
+                audioChunks = [];
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+                    const formData = new FormData();
+                    formData.append("media", audioBlob, "audio.wav");
+                    formData.append("user", currentUser);
+                    await fetch("/save-media", { method: "POST", body: formData });
+                    loadMessages();
+                };
+                mediaRecorder.start();
+                isRecording = true;
+                document.getElementById("recordButton").classList.add("recording");
+                document.getElementById("recordButton").innerText = "⏹ Parar Gravação";
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                document.getElementById("recordButton").classList.remove("recording");
+                document.getElementById("recordButton").innerText = "🎤 Gravar Áudio";
+            }
+        }
+
+        // Funções para a câmera
+        async function openCamera() {
+            const cameraOverlay = document.getElementById("camera-overlay");
+            const video = document.getElementById("camera-video");
+            const cameraSelect = document.getElementById("camera-select");
+            cameraOverlay.style.display = "flex";
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                video.srcObject = stream;
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === "videoinput");
+                cameraSelect.innerHTML = videoDevices.map(device => 
+                    `<option value="${device.deviceId}">${device.label || `Câmera ${videoDevices.indexOf(device) + 1}`}</option>`
+                ).join("");
+            } catch (err) {
+                console.error("Erro ao acessar a câmera:", err);
+            }
+        }
+
+        async function changeCamera() {
+            const cameraSelect = document.getElementById("camera-select");
+            const video = document.getElementById("camera-video");
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { deviceId: cameraSelect.value } 
+                });
+                video.srcObject = stream;
+            } catch (err) {
+                console.error("Erro ao mudar a câmera:", err);
+            }
+        }
+
+        async function capturePhoto(singleView) {
+            const video = document.getElementById("camera-video");
+            const canvas = document.createElement("canvas");
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext("2d").drawImage(video, 0, 0);
+            canvas.toBlob(async (blob) => {
+                const formData = new FormData();
+                formData.append("media", blob, "photo.jpg");
+                formData.append("user", currentUser);
+                if (singleView) {
+                    formData.append("singleView", true);
+                    await fetch("/save-single-view-media", { method: "POST", body: formData });
+                } else {
+                    await fetch("/save-media", { method: "POST", body: formData });
+                }
+                closeCamera();
+                loadMessages();
+            }, "image/jpeg");
+        }
+
+        function closeCamera() {
+            const cameraOverlay = document.getElementById("camera-overlay");
+            const video = document.getElementById("camera-video");
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            video.srcObject = null;
+            cameraOverlay.style.display = "none";
+        }
+
+        let unlockCount = 0;
+        function unlockAttempt() {
+            unlockCount++;
+            if (unlockCount >= 3) {
+                document.getElementById("lock-screen").style.display = "none";
+            }
+        }
+
+        let lastMessageCount = 0;
+        let lastNotifiedHellen = "";
+        async function autoUpdateMessages() {
+            try {
+                let response = await fetch("/load-messages");
+                let messages = await response.json();
+                let messagesContainer = document.getElementById("messages");
+                if (messages.length !== lastMessageCount) {
+                    messagesContainer.innerHTML = "";
+                    messages.forEach(msg => {
+                        let div = document.createElement("div");
+                        div.classList.add("message", msg.user.toLowerCase());
+                        if (msg.content) {
+                            div.innerHTML = msg.content.replace(/\n/g, "<br>");
+                        } else if (msg.media) {
+                            let fileExtension = msg.media.split('.').pop();
+                            if (msg.singleView && !msg.viewed && msg.user !== currentUser) {
+                                div.innerHTML = `<div style="color: red;">Esta foto pode ser visualizada apenas uma vez. <button onclick="openSingleView('${msg.media}')">Abrir</button></div>`;
+                            } else if (msg.viewed && msg.user === currentUser) {
+                                div.innerHTML = `<div style="color: #25d366;">Sua mídia foi visualizada.</div>`;
+                            } else if (!msg.singleView) {
+                                if (["mp4", "webm", "ogg"].includes(fileExtension)) {
+                                    div.innerHTML = `<video controls style="max-width: 100%; border-radius: 8px;"><source src="/Uploads/${msg.media}" type="video/${fileExtension}"></video>`;
+                                } else if (["mp3", "wav", "ogg"].includes(fileExtension)) {
+                                    div.innerHTML = `<audio controls style="max-width: 100%;"><source src="/Uploads/${msg.media}" type="audio/${fileExtension}"></audio>`;
+                                } else {
+                                    div.innerHTML = `<img src="/Uploads/${msg.media}" style="max-width: 100%; border-radius: 8px;">`;
+                                }
+                            }
+                        }
+                        messagesContainer.appendChild(div);
+                    });
+                    lastMessageCount = messages.length;
+                }
+                let hellenMessages = messages.filter(m => m.user === "Hellen");
+                if (hellenMessages.length > 0) {
+                    let lastHellen = hellenMessages[hellenMessages.length - 1];
+                    let content = lastHellen.content || "Enviou uma mídia";
+                    if (lastHellen.content !== lastNotifiedHellen) {
+                        if (Notification.permission === "granted") {
+                            new Notification("Nova mensagem de Hellen", {
+                                body: content,
+                                icon: "/path/to/icon.png"
+                            });
+                        }
+                        lastNotifiedHellen = lastHellen.content;
+                    }
+                }
+            } catch (err) {
+                console.error("Erro ao carregar mensagens:", err);
+            }
+        }
+
+        if ("Notification" in window) {
+            Notification.requestPermission();
+        }
+
+        setInterval(autoUpdateMessages, 1000);
+
+        let dotCount = 0;
+        function updateTypingIndicator() {
+            fetch("/typing-status")
+                .then(res => res.json())
+                .then(status => {
+                    let otherUser = currentUser === "Hellen" ? "Ewerton" : "Hellen";
+                    if (status[otherUser]) {
+                        dotCount = (dotCount + 1) % 4;
+                        let dots = ".".repeat(dotCount);
+                        document.getElementById("typing-indicator").innerText = `${otherUser} está digitando${dots}`;
+                    } else {
+                        document.getElementById("typing-indicator").innerText = "";
+                    }
+                })
+                .catch(err => console.error("Erro ao buscar status de digitação:", err));
+        }
+        setInterval(updateTypingIndicator, 500);
+    </script>
+</body>
+</html>
