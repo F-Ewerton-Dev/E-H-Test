@@ -9,6 +9,7 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static("public"));
 
+const PORT = process.env.PORT || 10000;
 const DATA_FILE = path.join(__dirname, "messages.json");
 const FOTOS_DIR = path.join(__dirname, "fotos");
 const FOTOS_LOG = path.join(__dirname, "fotos.json");
