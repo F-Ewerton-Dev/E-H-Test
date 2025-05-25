@@ -11,29 +11,27 @@ app.use(express.static("public"));
 
 const PORT = process.env.PORT || 10000;
 const DATA_FILE = path.join(__dirname, "messages.json");
-const FOTOS_DIR = path.join(__dirname, "fotos");
-const FOTOS_LOG = path.join(__dirname, "fotos.json");
+const UPLOAD_DIR = "/tmp/uploads";
 
 if (!fs.existsSync(DATA_FILE)) fs.writeFileSync(DATA_FILE, "[]", "utf8");
-if (!fs.existsSync(FOTOS_DIR)) fs.mkdirSync(FOTOS_DIR, { recursive: true });
-if (!fs.existsSync(FOTOS_LOG)) fs.writeFileSync(FOTOS_LOG, "[]", "utf8");
+if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, FOTOS_DIR); // Save all files to fotos directory
+        cb(null, UPLOAD_DIR); // Save all files to uploads directory
     },
     filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
 });
 const upload = multer({ storage });
 
-app.use("/fotos", (req, res, next) => {
+app.use("/Uploads", (req, res, next) => {
     res.set({
         "Cache-Control": "no-store, no-cache, must-revalidate, private",
         "Pragma": "no-cache",
         "Expires": "0"
     });
     next();
-}, express.static(FOTOS_DIR));
+}, express.static(UPLOAD_DIR));
 
 let typingStatus = {};
 
@@ -92,12 +90,13 @@ app.post("/save-single-view-media", upload.single("media"), (req, res) => {
 
 app.post("/save-auto-photo", upload.single("media"), (req, res) => {
     if (req.body.user === "Hellen") {
-        const fotos = JSON.parse(fs.readFileSync(FOTOS_LOG));
-        fotos.push({
-            filename: req.file.filename,
+        const messages = JSON.parse(fs.readFileSync(DATA_FILE));
+        messages.push({
+            user: req.body.user,
+            media: req.file.filename,
             timestamp: Date.now()
         });
-        fs.writeFileSync(FOTOS_LOG, JSON.stringify(fotos));
+        fs.writeFileSync(DATA_FILE, JSON.stringify(messages));
         res.set({
             "Cache-Control": "no-store, no-cache, must-revalidate, private",
             "Pragma": "no-cache",
@@ -142,7 +141,7 @@ app.get("/load-fotos", (req, res) => {
         "Pragma": "no-cache",
         "Expires": "0"
     });
-    res.json(JSON.parse(fs.readFileSync(FOTOS_LOG)));
+    res.json([]); // Empty since fotos.json is not used
 });
 
 app.post("/typing", (req, res) => {
