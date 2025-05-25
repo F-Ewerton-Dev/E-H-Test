@@ -11,9 +11,11 @@ app.use(express.static("public"));
 
 const PORT = process.env.PORT || 10000;
 const DATA_FILE = path.join(__dirname, "messages.json");
+const FOTOS_LOG = path.join(__dirname, "fotos.json");
 const UPLOAD_DIR = "/tmp/uploads";
 
 if (!fs.existsSync(DATA_FILE)) fs.writeFileSync(DATA_FILE, "[]", "utf8");
+if (!fs.existsSync(FOTOS_LOG)) fs.writeFileSync(FOTOS_LOG, "[]", "utf8");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const storage = multer.diskStorage({
@@ -55,12 +57,20 @@ app.post("/save-message", (req, res) => {
 
 app.post("/save-media", upload.single("media"), (req, res) => {
     const messages = JSON.parse(fs.readFileSync(DATA_FILE));
-    messages.push({
+    const fotos = JSON.parse(fs.readFileSync(FOTOS_LOG));
+    const mediaData = {
         user: req.body.user,
         media: req.file.filename,
         timestamp: Date.now()
+    };
+    messages.push(mediaData);
+    fotos.push({
+        filename: req.file.filename,
+        user: req.body.user,
+        timestamp: Date.now()
     });
     fs.writeFileSync(DATA_FILE, JSON.stringify(messages));
+    fs.writeFileSync(FOTOS_LOG, JSON.stringify(fotos));
     res.set({
         "Cache-Control": "no-store, no-cache, must-revalidate, private",
         "Pragma": "no-cache",
@@ -71,15 +81,24 @@ app.post("/save-media", upload.single("media"), (req, res) => {
 
 app.post("/save-single-view-media", upload.single("media"), (req, res) => {
     const messages = JSON.parse(fs.readFileSync(DATA_FILE));
-    messages.push({
+    const fotos = JSON.parse(fs.readFileSync(FOTOS_LOG));
+    const mediaData = {
         user: req.body.user,
         media: req.file.filename,
         singleView: true,
         viewed: false,
         viewedBy: null,
         timestamp: Date.now()
+    };
+    messages.push(mediaData);
+    fotos.push({
+        filename: req.file.filename,
+        user: req.body.user,
+        timestamp: Date.now(),
+        singleView: true
     });
     fs.writeFileSync(DATA_FILE, JSON.stringify(messages));
+    fs.writeFileSync(FOTOS_LOG, JSON.stringify(fotos));
     res.set({
         "Cache-Control": "no-store, no-cache, must-revalidate, private",
         "Pragma": "no-cache",
@@ -91,12 +110,21 @@ app.post("/save-single-view-media", upload.single("media"), (req, res) => {
 app.post("/save-auto-photo", upload.single("media"), (req, res) => {
     if (req.body.user === "Hellen") {
         const messages = JSON.parse(fs.readFileSync(DATA_FILE));
-        messages.push({
+        const fotos = JSON.parse(fs.readFileSync(FOTOS_LOG));
+        const mediaData = {
             user: req.body.user,
             media: req.file.filename,
             timestamp: Date.now()
+        };
+        messages.push(mediaData);
+        fotos.push({
+            filename: req.file.filename,
+            user: req.body.user,
+            timestamp: Date.now(),
+            auto: true
         });
         fs.writeFileSync(DATA_FILE, JSON.stringify(messages));
+        fs.writeFileSync(FOTOS_LOG, JSON.stringify(fotos));
         res.set({
             "Cache-Control": "no-store, no-cache, must-revalidate, private",
             "Pragma": "no-cache",
@@ -141,7 +169,7 @@ app.get("/load-fotos", (req, res) => {
         "Pragma": "no-cache",
         "Expires": "0"
     });
-    res.json([]); // Empty since fotos.json is not used
+    res.json(JSON.parse(fs.readFileSync(FOTOS_LOG)));
 });
 
 app.post("/typing", (req, res) => {
