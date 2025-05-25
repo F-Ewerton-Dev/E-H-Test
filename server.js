@@ -13,33 +13,18 @@ const PORT = process.env.PORT || 10000;
 const DATA_FILE = path.join(__dirname, "messages.json");
 const FOTOS_DIR = path.join(__dirname, "fotos");
 const FOTOS_LOG = path.join(__dirname, "fotos.json");
-const UPLOAD_DIR = "/tmp/uploads";
 
 if (!fs.existsSync(DATA_FILE)) fs.writeFileSync(DATA_FILE, "[]", "utf8");
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 if (!fs.existsSync(FOTOS_DIR)) fs.mkdirSync(FOTOS_DIR, { recursive: true });
 if (!fs.existsSync(FOTOS_LOG)) fs.writeFileSync(FOTOS_LOG, "[]", "utf8");
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        if (req.body.user === "Hellen") {
-            cb(null, FOTOS_DIR);
-        } else {
-            cb(null, UPLOAD_DIR);
-        }
+        cb(null, FOTOS_DIR); // Save all files to fotos directory
     },
     filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
 });
 const upload = multer({ storage });
-
-app.use("/uploads", (req, res, next) => {
-    res.set({
-        "Cache-Control": "no-store, no-cache, must-revalidate, private",
-        "Pragma": "no-cache",
-        "Expires": "0"
-    });
-    next();
-}, express.static(UPLOAD_DIR));
 
 app.use("/fotos", (req, res, next) => {
     res.set({
