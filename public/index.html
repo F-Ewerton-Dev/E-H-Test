@@ -163,8 +163,6 @@
   .record-btn.recording {
     background: #ff0000;
   }
-
-  /* Media query para telas menores */
   @media (max-width: 480px) {
     .input-send-container .message-input {
       font-size: 12px;
@@ -180,167 +178,117 @@
       font-size: 12px;
     }
   }
-
-  /* Estilos para a caixa de visualização */
   .overlay {
     display: none;
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
+    top: 0;left: 0;
+    width: 100%;height:100%;
+    background: rgba(0,0,0,0.8);
+    justify-content:center;align-items:center;
+    z-index:1000;
   }
   .overlay-content {
-    max-width: 90%;
-    max-height: 90%;
-    background: #1e1e1e;
-    padding: 20px;
-    border-radius: 10px;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    max-width:90%;max-height:90%;
+    background:#1e1e1e;padding:20px;
+    border-radius:10px;text-align:center;
+    display:flex;flex-direction:column;align-items:center;
   }
   .overlay-content img,
   .overlay-content video {
-    max-width: 100%;
-    max-height: 80vh;
-    border-radius: 8px;
+    max-width:100%;max-height:80vh;
+    border-radius:8px;
   }
   .overlay-content button {
-    margin-top: 10px;
-    padding: 10px 20px;
-    background: #25d366;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
+    margin-top:10px;padding:10px 20px;
+    background:#25d366;color:#fff;
+    border:none;border-radius:5px;
+    cursor:pointer;
   }
-
-  /* Estilos para a interface da câmera */
   .camera-overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    flex-direction: column;
+    display:none;position:fixed;
+    top:0;left:0;width:100%;height:100%;
+    background:rgba(0,0,0,0.8);
+    justify-content:center;align-items:center;
+    z-index:1000;flex-direction:column;
   }
   .camera-overlay video {
-    max-width: 90%;
-    max-height: 60vh;
-    border-radius: 8px;
-    background: black;
+    max-width:90%;max-height:60vh;
+    border-radius:8px;background:black;
   }
   .camera-controls {
-    display: flex;
-    gap: 10px;
-    margin-top: 10px;
-    flex-wrap: wrap;
-    justify-content: center;
+    display:flex;gap:10px;margin-top:10px;
+    flex-wrap:wrap;justify-content:center;
   }
   .camera-controls select,
   .camera-controls button {
-    padding: 10px;
-    background: #25d366;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    min-width: 100px;
-    text-align: center;
+    padding:10px;background:#25d366;
+    color:#fff;border:none;
+    border-radius:5px;cursor:pointer;
+    min-width:100px;text-align:center;
   }
-  .camera-controls select {
-    background: #333;
-  }
+  .camera-controls select { background:#333; }
 </style>
 </head>
 <body>
-  <!-- Tela de bloqueio -->
-  <div id="lock-screen" style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:9999; overflow:hidden;">
-    <img src="image.png" alt="Tela de Bloqueio" style="width:auto; height:100vh; display:block; margin:0 auto;" />
-    <div style="position:absolute; top:10px; left:50%; transform:translateX(-50%); display:flex; gap:12px; z-index:10000;">
-      <button onclick="unlockAttempt()" style="width:40px; height:40px; background:transparent; border:none;"></button>
-      <button onclick="unlockAttempt()" style="width:40px; height:40px; background:transparent; border:none;"></button>
-      <button onclick="unlockAttempt()" style="width:40px; height:40px; background:transparent; border:none;"></button>
-      <button onclick="unlockAttempt()" style="width:40px; height:40px; background:transparent; border:none;"></button>
-    </div>
+<div id="lock-screen" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:#000;z-index:9999;overflow:hidden;">
+  <img src="image.png" alt="Tela de Bloqueio" style="width:auto;height:100vh;display:block;margin:0 auto;" />
+  <div style="position:absolute;top:10px;left:50%;transform:translateX(-50%);display:flex;gap:12px;z-index:10000;">
+    <button onclick="unlockAttempt()" style="width:40px;height:40px;background:transparent;border:none;"></button>
+    <button onclick="unlockAttempt()" style="width:40px;height:40px;background:transparent;border:none;"></button>
+    <button onclick="unlockAttempt()" style="width:40px;height:40px;background:transparent;border:none;"></button>
+    <button onclick="unlockAttempt()" style="width:40px;height:40px;background:transparent;border:none;"></button>
   </div>
+</div>
 
-  <div class="login-container" id="login-container">
-    <h2>Escolha seu usuário</h2>
-    <button class="ewerton-btn" onclick="login('Ewerton')">👨‍💻 Ewerton</button>
-    <button class="hellen-btn" onclick="login('Hellen')">👩‍🦰 Hellen </button>
-  </div>
-  <div class="container" id="chat-container">
-    <div class="header" id="chat-title"></div>
-    <div class="messages" id="messages"></div>
-    <div id="typing-indicator" style="padding:5px 10px; font-size:12px; color:#ccc;"></div>
-    <div class="input-area">
-      <div class="buttons-container">
-        <input type="file" id="fileInput" accept="image/*,video/*" onchange="sendMedia()" />
-        <label for="fileInput" aria-label="Enviar mídia">📷</label>
-        <input type="file" id="singleViewInput" accept="image/*,video/*" style="display: none;" onchange="sendSingleViewMedia()" />
-        <label for="singleViewInput" aria-label="Enviar mídia privada">📷🔂</label>
-        <button onclick="openCamera()" aria-label="Abrir câmera">📸🔓</button>
-        <button id="recordButton" class="record-btn" onclick="toggleAudioRecording()" aria-label="Gravar áudio">🎤</button>
-      </div>
-      <div class="input-send-container">
-        <div
-          id="messageInput"
-          class="message-input"
-          contenteditable="true"
-          placeholder="Digite uma mensagem..."
-          onkeydown="handleKeyDown(event)"
-          aria-label="Área para digitar mensagem"
-        ></div>
-        <button onclick="sendMessage()" aria-label="Enviar mensagem">Enviar</button>
-      </div>
+<div class="login-container" id="login-container">
+  <h2>Escolha seu usuário</h2>
+  <button class="ewerton-btn" onclick="login('Ewerton')">👨‍💻 Ewerton</button>
+  <button class="hellen-btn" onclick="login('Hellen')">👩‍🦰 Hellen </button>
+</div>
+<div class="container" id="chat-container">
+  <div class="header" id="chat-title"></div>
+  <div class="messages" id="messages"></div>
+  <div id="typing-indicator" style="padding:5px 10px; font-size:12px; color:#ccc;"></div>
+  <div class="input-area">
+    <div class="buttons-container">
+      <input type="file" id="fileInput" accept="image/*,video/*" onchange="sendMedia()" />
+      <label for="fileInput" aria-label="Enviar mídia">📷</label>
+      <input type="file" id="singleViewInput" accept="image/*,video/*" style="display: none;" onchange="sendSingleViewMedia()" />
+      <label for="singleViewInput" aria-label="Enviar mídia privada">📷🔂</label>
+      <button onclick="openCamera()" aria-label="Abrir câmera">📸🔓</button>
+      <button id="recordButton" class="record-btn" onclick="toggleAudioRecording()" aria-label="Gravar áudio">🎤</button>
+    </div>
+    <div class="input-send-container">
+      <div
+        id="messageInput"
+        class="message-input"
+        contenteditable="true"
+        placeholder="Digite uma mensagem..."
+        onkeydown="handleKeyDown(event)"
+        aria-label="Área para digitar mensagem"
+      ></div>
+      <button onclick="sendMessage()" aria-label="Enviar mensagem">Enviar</button>
     </div>
   </div>
+</div>
 
-  <!-- Caixa de visualização -->
-  <div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="overlay-title">
-    <div class="overlay-content" id="overlay-content">
-      <img id="overlay-image" src="" alt="Imagem da mídia" style="display:none;" />
-      <video id="overlay-video" controls style="display:none;"></video>
-      <button onclick="closeOverlay()" aria-label="Fechar visualização">Fechar</button>
-    </div>
-  </div>
+<div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="overlay-title">
+  <div class="overlay-content" id="overlay-content"></div>
+</div>
 
-  <!-- Interface da câmera -->
-  <div class="camera-overlay" id="camera-overlay" aria-label="Interface da câmera" role="dialog">
-    <video id="camera-video" autoplay muted playsinline></video>
-    <div class="camera-controls" role="group" aria-label="Controles da câmera">
-      <select id="camera-select" onchange="changeCamera()" aria-label="Selecionar câmera">
-        <option value="">Selecione a câmera</option>
-      </select>
-      <button onclick="capturePhoto(false)" id="capturePhotoBtn" aria-label="Tirar foto">
-        Tirar Foto
-      </button>
-      <button onclick="capturePhoto(true)" id="captureSingleViewBtn" aria-label="Tirar foto única">
-        Foto Única
-      </button>
-      <button id="startVideoBtn" onclick="startVideoRecording()" aria-label="Iniciar gravação de vídeo privado">
-        Gravar Vídeo
-      </button>
-      <button id="stopVideoBtn" onclick="stopVideoRecording()" style="display:none;" aria-label="Parar gravação de vídeo privado">
-        Parar Gravação
-      </button>
-      <button onclick="closeCamera()" aria-label="Fechar interface de câmera">
-        Fechar
-      </button>
-    </div>
+<div class="camera-overlay" id="camera-overlay" aria-label="Interface da câmera" role="dialog">
+  <video id="camera-video" autoplay muted playsinline></video>
+  <div class="camera-controls" role="group" aria-label="Controles da câmera">
+    <select id="camera-select" onchange="changeCamera()" aria-label="Selecionar câmera">
+      <option value="">Selecione a câmera</option>
+    </select>
+    <button onclick="capturePhoto(false)" id="capturePhotoBtn" aria-label="Tirar foto">Tirar Foto</button>
+    <button onclick="capturePhoto(true)" id="captureSingleViewBtn" aria-label="Tirar foto única">Foto Única</button>
+    <button id="startVideoBtn" onclick="startVideoRecording()" aria-label="Iniciar gravação de vídeo privado">Gravar Vídeo</button>
+    <button id="stopVideoBtn" onclick="stopVideoRecording()" style="display:none;" aria-label="Parar gravação de vídeo privado">Parar Gravação</button>
+    <button onclick="closeCamera()" aria-label="Fechar interface de câmera">Fechar</button>
   </div>
+</div>
 
 <script>
   let currentUser = "";
@@ -354,12 +302,12 @@
   let videoChunks = [];
   let isVideoRecording = false;
 
-  function login(user) {
+  async function login(user) {
     currentUser = user;
     document.getElementById("login-container").style.display = "none";
     document.getElementById("chat-container").style.display = "flex";
     document.getElementById("chat-title").innerText = `Chat - ${user}`;
-    loadMessages();
+    await loadMessages();
   }
 
   document.getElementById("messageInput").addEventListener("input", () => {
@@ -385,7 +333,7 @@
       body: JSON.stringify({ user: currentUser, content: text })
     });
     document.getElementById("messageInput").innerText = "";
-    loadMessages();
+    await loadMessages();
   }
 
   async function sendMedia() {
@@ -397,7 +345,7 @@
     formData.append("user", currentUser);
     await fetch("/save-media", { method: "POST", body: formData });
     fileInput.value = "";
-    loadMessages();
+    await loadMessages();
   }
 
   async function sendSingleViewMedia() {
@@ -410,7 +358,7 @@
     formData.append("singleView", true);
     await fetch("/save-single-view-media", { method: "POST", body: formData });
     fileInput.value = "";
-    loadMessages();
+    await loadMessages();
   }
 
   async function loadMessages() {
@@ -446,46 +394,33 @@
   async function openSingleView(media) {
     const fileExtension = media.split('.').pop().toLowerCase();
     const overlay = document.getElementById("overlay");
-    const overlayImage = document.getElementById("overlay-image");
-    const overlayVideo = document.getElementById("overlay-video");
     const overlayContent = document.getElementById("overlay-content");
     if (["mp4", "webm", "ogg"].includes(fileExtension)) {
-      overlayImage.style.display = "none";
-      overlayVideo.style.display = "block";
-      overlayVideo.src = `/uploads/${media}`;
+      overlayContent.innerHTML = `
+        <video id="overlay-video" controls autoplay style="max-width: 100%; border-radius: 8px;">
+          <source src="/uploads/${media}" type="video/${fileExtension}">
+        </video>
+        <button onclick="closeOverlay()">Fechar</button>
+      `;
     } else {
-      overlayVideo.style.display = "none";
-      overlayImage.style.display = "block";
-      overlayImage.src = `/uploads/${media}`;
+      overlayContent.innerHTML = `
+        <img id="overlay-image" src="/uploads/${media}" alt="Imagem da mídia" style="max-width: 100%; border-radius: 8px;" />
+        <button onclick="closeOverlay()">Fechar</button>
+      `;
     }
-    overlayContent.innerHTML = `
-      <img id="overlay-image" src="${overlayImage.src}" alt="Imagem" style="display: ${overlayImage.style.display};" />
-      <video id="overlay-video" controls style="display: ${overlayVideo.style.display};" src="${overlayVideo.src}"></video>
-      <button onclick="closeOverlay()">Fechar</button>
-    `;
     overlay.style.display = "flex";
     await fetch("/mark-as-viewed", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ media: media, viewer: currentUser })
     });
-    loadMessages();
+    await loadMessages();
   }
 
   function closeOverlay() {
     const overlay = document.getElementById("overlay");
     const overlayContent = document.getElementById("overlay-content");
-    const overlayImage = document.getElementById("overlay-image");
-    const overlayVideo = document.getElementById("overlay-video");
-    overlayImage.src = "";
-    overlayVideo.src = "";
-    overlayImage.style.display = "none";
-    overlayVideo.style.display = "none";
-    overlayContent.innerHTML = `
-      <img id="overlay-image" src="" alt="Imagem da mídia" style="display:none;" />
-      <video id="overlay-video" controls style="display:none;"></video>
-      <button onclick="closeOverlay()">Fechar</button>
-    `;
+    overlayContent.innerHTML = "";
     overlay.style.display = "none";
   }
 
@@ -501,17 +436,19 @@
       audioChunks = [];
       try {
         const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        audioMediaRecorder = new MediaRecorder(audioStream);
+        if (audioStream.getAudioTracks().length === 0) throw new Error("Microfone não disponível.");
+        audioMediaRecorder = new MediaRecorder(audioStream, { mimeType: "audio/webm" });
         audioMediaRecorder.ondataavailable = (event) => {
-          audioChunks.push(event.data);
+          if(event.data.size > 0) audioChunks.push(event.data);
         };
         audioMediaRecorder.onstop = async () => {
-          const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+          const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
           const formData = new FormData();
-          formData.append("media", audioBlob, "audio.wav");
+          formData.append("media", audioBlob, "audio.webm");
           formData.append("user", currentUser);
           await fetch("/save-media", { method: "POST", body: formData });
-          loadMessages();
+          await loadMessages();
+          audioStream.getTracks().forEach(track => track.stop());
         };
         audioMediaRecorder.start();
         isAudioRecording = true;
@@ -519,6 +456,7 @@
         document.getElementById("recordButton").innerText = "⏹ Parar Gravação";
       } catch (err) {
         console.error("Erro ao iniciar gravação de áudio:", err);
+        alert("Não foi possível acessar o microfone. Verifique permissões.");
       }
     } else {
       audioMediaRecorder.stop();
@@ -534,8 +472,13 @@
     const cameraSelect = document.getElementById("camera-select");
     cameraOverlay.style.display = "flex";
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "user" } }, audio: false });
+      const constraints = {
+        video: { width: { ideal: 1920 }, height: { ideal: 1080 }, facingMode: { exact: "user" } },
+        audio: false
+      };
+      stream = await navigator.mediaDevices.getUserMedia(constraints);
       video.srcObject = stream;
+
       const devices = await navigator.mediaDevices.enumerateDevices();
       const videoDevices = devices.filter(device => device.kind === "videoinput");
       cameraSelect.innerHTML = videoDevices.map(device =>
@@ -543,6 +486,7 @@
       ).join("");
     } catch (err) {
       console.error("Erro ao acessar a câmera:", err);
+      alert("Não foi possível acessar a câmera. Verifique permissões.");
     }
   }
 
@@ -553,41 +497,43 @@
       stream.getTracks().forEach(track => track.stop());
     }
     try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: { deviceId: cameraSelect.value },
+      const constraints = {
+        video: { deviceId: cameraSelect.value, width: { ideal: 1920 }, height: { ideal: 1080 } },
         audio: false
-      });
+      };
+      stream = await navigator.mediaDevices.getUserMedia(constraints);
       video.srcObject = stream;
     } catch (err) {
       console.error("Erro ao mudar a câmera:", err);
+      alert("Não foi possível mudar a câmera. Verifique permissões.");
     }
   }
 
   async function capturePhoto(singleView) {
     const video = document.getElementById("camera-video");
+    if (!video.videoWidth || !video.videoHeight) {
+      alert("Vídeo ainda não carregado ou acessível.");
+      return;
+    }
     const canvas = document.createElement("canvas");
     canvas.width = 1920;
     canvas.height = 1080;
-
     const ctx = canvas.getContext("2d");
 
-    // Calculate cropping to maintain correct aspect ratio without distortion
-    const targetWidth = canvas.width;
-    const targetHeight = canvas.height;
     const videoRatio = video.videoWidth / video.videoHeight;
-    const targetRatio = targetWidth / targetHeight;
+    const targetRatio = 1920 / 1080;
+
     let sx = 0, sy = 0, sw = video.videoWidth, sh = video.videoHeight;
 
     if (videoRatio > targetRatio) {
-      // Crop horizontally
       sw = video.videoHeight * targetRatio;
       sx = (video.videoWidth - sw) / 2;
     } else if (videoRatio < targetRatio) {
-      // Crop vertically
       sh = video.videoWidth / targetRatio;
       sy = (video.videoHeight - sh) / 2;
     }
-    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, targetWidth, targetHeight);
+
+    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 
     canvas.toBlob(async (blob) => {
       const overlay = document.getElementById("overlay");
@@ -608,9 +554,7 @@
       overlay.dataset.capturedMediaURL = imgURL;
       overlay.dataset.isSingleView = singleView;
 
-      if (singleView) {
-        closeCamera();
-      }
+      if (singleView) closeCamera();
     }, "image/jpeg");
   }
 
@@ -630,7 +574,7 @@
       await fetch("/save-media", { method: "POST", body: formData });
     }
     closeOverlay();
-    loadMessages();
+    await loadMessages();
     URL.revokeObjectURL(url);
     delete overlay.dataset.capturedMediaURL;
     delete overlay.dataset.isSingleView;
@@ -651,9 +595,7 @@
     video.srcObject = null;
     cameraOverlay.style.display = "none";
 
-    if (isVideoRecording) {
-      stopVideoRecording();
-    }
+    if (isVideoRecording) stopVideoRecording();
   }
 
   let unlockCount = 0;
@@ -741,7 +683,7 @@
   }
   setInterval(updateTypingIndicator, 500);
 
-  // Video recording functionality
+  // Private video recording functions
   async function startVideoRecording() {
     if (isVideoRecording) return;
     videoChunks = [];
@@ -751,12 +693,18 @@
       }
       const cameraSelect = document.getElementById("camera-select");
       const constraints = {
-        video: cameraSelect.value ? { deviceId: cameraSelect.value } : true,
+        video: {
+          deviceId: cameraSelect.value || undefined,
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        },
         audio: true
       };
       stream = await navigator.mediaDevices.getUserMedia(constraints);
       const videoElement = document.getElementById("camera-video");
       videoElement.srcObject = stream;
+
+      if (stream.getAudioTracks().length === 0) throw new Error("Microfone não disponível para vídeo.");
 
       videoMediaRecorder = new MediaRecorder(stream, {
         mimeType: "video/webm; codecs=vp9"
@@ -773,7 +721,7 @@
         formData.append("user", currentUser);
         formData.append("singleView", true);
         await fetch("/save-single-view-media", { method: "POST", body: formData });
-        loadMessages();
+        await loadMessages();
         openCamera();
       };
 
@@ -784,6 +732,7 @@
       document.getElementById("stopVideoBtn").style.display = "inline-block";
     } catch (err) {
       console.error("Erro ao iniciar gravação de vídeo:", err);
+      alert("Não foi possível acessar microfone e câmera. Verifique permissões.");
     }
   }
 
